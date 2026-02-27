@@ -1,0 +1,7 @@
+{
+  "web": ["web development"],
+  "ml": ["machine learning"],
+  "ai": ["machine learning", "deep learning"],
+  "cv": ["computer vision"],
+  "nlp": ["nlp"]
+}

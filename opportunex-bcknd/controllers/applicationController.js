@@ -1,0 +1,244 @@
+// Controller logic will be added step by step
+
+const Application = require("../models/Application");
+const Opportunity = require("../models/Opportunity");
+const { createNotification } = require("./notificationController");
+
+// Apply to an opportunity
+exports.applyToOpportunity = async (req, res) => {
+  try {
+    const { opportunityId } = req.body;
+    const studentId = req.user.id;
+
+    const opportunity = await Opportunity.findById(opportunityId);
+
+    if (!opportunity) {
+      return res.status(404).json({
+        message: "Opportunity not found",
+      });
+    }
+
+    if (opportunity.status !== "Active") {
+      return res.status(400).json({
+        message: "Opportunity is closed",
+      });
+    }
+
+    const existingApplication = await Application.findOne({
+      opportunityId,
+      studentId,
+    });
+
+    if (existingApplication) {
+      return res.status(400).json({
+        message: "You have already applied to this opportunity",
+      });
+    }
+
+    const application = new Application({
+      opportunityId,
+      studentId,
+    });
+
+    await application.save();
+
+    // 🔔 Notify Recruiter/Creator
+    await createNotification({
+      collegeId: opportunity.collegeId,
+      recipient: opportunity.createdBy,
+      title: "New Application",
+      message: `A student has applied for "${opportunity.title}"`,
+      type: "info",
+      link: "/applicants",
+      eventName: "new_application",
+      socketData: {
+        applicationId: application._id,
+        jobTitle: opportunity.title
+      }
+    });
+
+    if (global.io) {
+      global.io.to('admin').emit('application_update', {
+        message: 'New application received'
+      });
+    }
+
+    res.status(201).json({
+      message: "Applied successfully",
+      application,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to apply",
+      error: error.message,
+    });
+  }
+};
+
+
+// Update application status
+exports.updateApplicationStatus = async (req, res) => {
+  try {
+    const { applicationId, newStatus } = req.body;
+
+    const application = await Application.findById(applicationId);
+
+    if (!application) {
+      return res.status(404).json({
+        message: "Application not found",
+      });
+    }
+
+    const currentStatus = application.status;
+
+    const allowedTransitions = {
+      Applied: ["Shortlisted", "Rejected"],
+      Shortlisted: ["Selected", "Rejected"],
+    };
+
+    if (
+      !allowedTransitions[currentStatus] ||
+      !allowedTransitions[currentStatus].includes(newStatus)
+    ) {
+      return res.status(400).json({
+        message: `Invalid status transition from ${currentStatus} to ${newStatus}`,
+      });
+    }
+
+    // Fetch opportunity to verify ownership and title
+    const opportunity = await Opportunity.findById(application.opportunityId);
+    if (!opportunity) {
+      return res.status(404).json({ message: "Opportunity not found" });
+    }
+    if (opportunity.createdBy.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized access." });
+    }
+
+    application.status = newStatus;
+    await application.save();
+
+    // 🔔 Notify Student
+    await createNotification({
+      collegeId: opportunity.collegeId,
+      recipient: application.studentId,
+      title: `Application ${newStatus}`,
+      message: `Your application for "${opportunity.title}" has been updated to: ${newStatus}`,
+      type: newStatus === "Rejected" ? "error" : "success",
+      link: "/applications",
+      eventName: "application_status_update",
+      socketData: {
+        jobTitle: opportunity.title,
+        newStatus: newStatus
+      }
+    });
+
+    res.status(200).json({
+      message: "Application status updated successfully",
+      application,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to update application status",
+      error: error.message,
+    });
+  }
+};
+
+// Get applications for a specific opportunity
+exports.getApplicationsByOpportunity = async (req, res) => {
+  try {
+    const { opportunityId } = req.params;
+
+    // Verify this resource belongs to the requesting company
+    const opportunity = await Opportunity.findById(opportunityId);
+    if (!opportunity) {
+      return res.status(404).json({ message: "Opportunity not found" });
+    }
+    if (req.user.role !== 'admin' && opportunity.createdBy.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized access." });
+    }
+
+    const applications = await Application.find({ opportunityId })
+      .populate("studentId", "name email")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const StudentProfile = require("../models/StudentProfile");
+
+    const enrichedApplications = await Promise.all(
+      applications.map(async (app) => {
+        if (!app.studentId?._id) return app;
+        const profile = await StudentProfile.findOne({ userId: app.studentId._id }).select("resumePath skills branch year");
+        return {
+          ...app,
+          studentProfile: profile || null
+        };
+      })
+    );
+
+    res.status(200).json({
+      count: enrichedApplications.length,
+      applications: enrichedApplications,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch applications",
+      error: error.message,
+    });
+  }
+};
+
+// Get all applications for the logged-in student
+exports.getStudentApplications = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const Project = require("../models/Project"); // Lazy load to avoid circular dependency if any
+
+    // 1. Fetch Opportunity Applications
+    const applications = await Application.find({ studentId })
+      .populate({
+        path: "opportunityId",
+        populate: { path: "createdBy", select: "name" }
+      })
+      .lean();
+
+    // 2. Fetch Project Applications
+    const projects = await Project.find({ "applicants.student": studentId })
+      .populate("createdBy", "name")
+      .lean();
+
+    // 3. Format Opportunities
+    const formattedApps = applications.map(app => ({
+      _id: app._id,
+      title: app.opportunityId?.title || "Unknown Opportunity",
+      company: app.opportunityId?.createdBy?.name || "Institution Partner",
+      status: app.status,
+      type: "Corporate Opportunity",
+      appliedAt: app.createdAt
+    }));
+
+    // 4. Format Projects
+    const formattedProjects = projects.map(p => {
+      const applicant = p.applicants.find(a => a.student.toString() === studentId);
+      return {
+        _id: p._id,
+        title: p.title,
+        company: p.createdBy?.name || "Faculty Supervisor",
+        status: applicant?.status || "Pending",
+        type: "Research Project",
+        appliedAt: applicant?.appliedAt || p.createdAt
+      };
+    });
+
+    // 5. Merge and Sort
+    const merged = [...formattedApps, ...formattedProjects].sort((a, b) =>
+      new Date(b.appliedAt) - new Date(a.appliedAt)
+    );
+
+    res.status(200).json(merged);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Fetch failed", error: err.message });
+  }
+};
+

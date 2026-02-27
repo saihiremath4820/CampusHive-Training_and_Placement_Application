@@ -1,0 +1,15 @@
+# Debug and log files
+*.log
+*.txt
+debug_*.js
+fix_*.js
+check_*.js
+*_raw.json
+*_output.json
+seed_err*.log
+
+# Environment
+.env
+node_modules/
+dist/
+uploads/
