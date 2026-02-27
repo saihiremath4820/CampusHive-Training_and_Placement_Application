@@ -1,0 +1,11 @@
+{
+  "DSA": ["data structures", "algorithms"],
+  "DBMS": ["databases", "sql"],
+  "OS": ["operating systems", "process scheduling"],
+  "CN": ["computer networks", "tcp/ip"],
+  "ML": ["machine learning"],
+  "AI": ["machine learning", "deep learning"],
+  "DL": ["deep learning"],
+  "SE": ["software engineering"],
+  "OOP": ["object oriented programming"]
+}

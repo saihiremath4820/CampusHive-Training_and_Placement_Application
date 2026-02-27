@@ -1,0 +1,47 @@
+import axios from "axios";
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE,
+});
+
+// Attach token to every request
+api.interceptors.request.use((config) => {
+  const token = sessionStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+/* =====================
+   OPPORTUNITY ROUTES
+   ===================== */
+
+// GET all opportunities for the logged-in company
+export const getOpportunities = () => api.get("/opportunity");
+export const getCompanyOpportunities = getOpportunities;
+
+// CREATE opportunity
+export const createOpportunity = (data) => api.post("/opportunity", data);
+
+// EDIT opportunity (resets approval)
+export const updateOpportunity = (id, data) => api.put(`/opportunity/${id}`, data);
+
+// DELETE opportunity
+export const deleteOpportunity = (id) => api.delete(`/opportunity/${id}`);
+
+// CLOSE opportunity
+export const closeOpportunity = (id) => api.put(`/opportunity/${id}/close`);
+
+// Analytics
+export const getCompanyAnalytics = () => api.get("/opportunity/analytics");
+
+/* =====================
+   APPLICATION ROUTES
+   ===================== */
+
+// ✅ FIXED: Correct URL for fetching applicants per opportunity
+export const getApplicants = (opportunityId) =>
+  api.get(`/application/opportunity/${opportunityId}`);
+
+// Update applicant status (shortlist / select / reject)
+export const updateApplicantStatus = (applicationId, newStatus) =>
+  api.put("/application/status", { applicationId, newStatus });

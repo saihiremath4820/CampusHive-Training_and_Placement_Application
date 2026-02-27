@@ -1,0 +1,11 @@
+{
+  "programming": ["c", "c++", "java", "python"],
+  "data structures": ["arrays", "linked list", "stack", "queue", "tree", "graph"],
+  "machine learning": ["scikit-learn", "xgboost", "lightgbm"],
+  "deep learning": ["tensorflow", "pytorch", "keras"],
+  "computer vision": ["opencv", "cnn", "image processing"],
+  "nlp": ["transformers", "bert", "tokenization"],
+  "web development": ["html", "css", "javascript", "react", "node.js"],
+  "databases": ["mysql", "postgresql", "mongodb"],
+  "cloud": ["aws", "gcp", "azure"]
+}
