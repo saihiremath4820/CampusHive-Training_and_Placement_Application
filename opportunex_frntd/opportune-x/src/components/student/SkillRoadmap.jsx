@@ -118,23 +118,66 @@ export default function SkillRoadmap() {
                   </h3>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", marginBottom: "1.25rem" }}>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
-                      <BookOpen size={13} style={{ color: "var(--accent)", flexShrink: 0, marginTop: "0.15rem" }} />
-                      <p style={{ fontSize: "0.8rem", color: "var(--text)", opacity: 0.65, margin: 0, lineHeight: 1.5 }}>
-                        <strong>Course:</strong> {item.course}
-                      </p>
-                    </div>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
-                      <Code2 size={13} style={{ color: "var(--green)", flexShrink: 0, marginTop: "0.15rem" }} />
-                      <p style={{ fontSize: "0.8rem", color: "var(--text)", opacity: 0.65, margin: 0, lineHeight: 1.5 }}>
-                        <strong>Project:</strong> {item.project}
-                      </p>
-                    </div>
-                    {item.hours && (
-                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+
+                    {/* Render Resources properly as an array of structured objects */}
+                    {item.resources && item.resources.length > 0 && (
+                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
+                        <BookOpen size={13} style={{ color: "var(--accent)", flexShrink: 0, marginTop: "0.15rem" }} />
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                          {item.resources.map((res, idx) => (
+                            <p key={idx} style={{ fontSize: "0.8rem", color: "var(--text)", opacity: 0.85, margin: 0, lineHeight: 1.5 }}>
+                              <strong>{res.platform}:</strong>{" "}
+                              {res.url && res.url !== "#" && res.url !== "https://actual-link-to-the-resource.com" ? (
+                                <a href={res.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 700 }}>{res.title}</a>
+                              ) : (
+                                res.title
+                              )}
+                              {res.duration && <span style={{ opacity: 0.5, fontSize: "0.7rem", marginLeft: 6 }}>({res.duration})</span>}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fallback code if the backend generates legacy string course names */}
+                    {!item.resources && item.course && (
+                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
+                        <BookOpen size={13} style={{ color: "var(--accent)", flexShrink: 0, marginTop: "0.15rem" }} />
+                        <p style={{ fontSize: "0.8rem", color: "var(--text)", opacity: 0.85, margin: 0, lineHeight: 1.5 }}>
+                          <strong>Course:</strong> {item.course}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Render Projects properly as structured objects */}
+                    {item.projects && item.projects.length > 0 && (
+                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start", marginTop: "0.3rem" }}>
+                        <Code2 size={13} style={{ color: "var(--green)", flexShrink: 0, marginTop: "0.15rem" }} />
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                          {item.projects.map((proj, idx) => (
+                            <p key={idx} style={{ fontSize: "0.8rem", color: "var(--text)", opacity: 0.85, margin: 0, lineHeight: 1.5 }}>
+                              <strong>[{proj.difficulty}] {proj.title}:</strong> {proj.description}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fallback for legacy string projects */}
+                    {!item.projects && item.project && (
+                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
+                        <Code2 size={13} style={{ color: "var(--green)", flexShrink: 0, marginTop: "0.15rem" }} />
+                        <p style={{ fontSize: "0.8rem", color: "var(--text)", opacity: 0.85, margin: 0, lineHeight: 1.5 }}>
+                          <strong>Project:</strong> {item.project}
+                        </p>
+                      </div>
+                    )}
+
+                    {(item.hours || item.estimatedHours) && (
+                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginTop: "0.3rem" }}>
                         <Clock size={12} style={{ color: "var(--text)", opacity: 0.35, flexShrink: 0 }} />
                         <p style={{ fontSize: "0.75rem", color: "var(--text)", opacity: 0.4, margin: 0 }}>
-                          Est. learning time: <strong>{item.hours}</strong>
+                          Est. learning time: <strong>{item.hours || item.estimatedHours}</strong>
                         </p>
                       </div>
                     )}
