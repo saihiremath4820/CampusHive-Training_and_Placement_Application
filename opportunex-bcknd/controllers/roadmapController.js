@@ -39,19 +39,21 @@ Student Profile:
 - Missing Skills: ${missingSkills.join(', ')}
 
 Generate a personalized learning roadmap for each missing skill.
+You must absolutely include REAL, CLICKABLE, HIGH-QUALITY RESOURCES. Provide actual URLs to YouTube (e.g. FreeCodeCamp, Programming with Mosh, NPTEL, CS50), Udemy, or official documentation. DO NOT return blank URLs. Do NOT return placeholders like "https://youtube.com". Be specific.
+
 Return ONLY valid JSON:
 {
   "roadmap": [
     {
       "skill": "skill name",
       "priority": "high|medium|low",
-      "estimatedHours": number,
+      "estimatedHours": 20,
       "resources": [
         {
-          "title": "resource name",
+          "title": "Specific Course/Video Name",
           "type": "course|tutorial|documentation|book",
-          "platform": "platform name",
-          "url": "real URL if known",
+          "platform": "YouTube|Udemy|NPTEL|Coursera",
+          "url": "https://actual-link-to-the-resource.com",
           "duration": "X hours"
         }
       ],
@@ -66,49 +68,28 @@ Return ONLY valid JSON:
   ]
 }`;
 
-        // 3. Call Groq API via standard HTTP endpoint, matching typical LLM chat completion structures
-        // Using axios direct POST to the specified Groq API endpoint
-        // Fallback: If local proxy exists, use it. Otherwise direct to groq.
-
+        // 3. Extract the roadmap directly with Groq
         let aiRoadmapData;
 
-        // Check if groq sdk was installed and try to use it
-        let Groq;
         try {
-            Groq = require('groq-sdk');
-        } catch (e) {
-            // Ignored
-        }
+            const Groq = require('groq-sdk');
+            const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-        if (Groq && process.env.GROQ_API_KEY) {
-            console.log('Using official Groq SDK');
-            const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-            const completion = await groq.chat.completions.create({
+            const completion = await groqClient.chat.completions.create({
                 messages: [
                     { role: "system", content: "You strictly return valid JSON output only." },
                     { role: "user", content: prompt }
                 ],
                 model: "llama-3.3-70b-versatile",
+                temperature: 0.2, // low temperature to avoid hallucinated fake URLs
                 response_format: { type: "json_object" }
             });
 
             const text = completion.choices[0]?.message?.content;
-            try {
-                aiRoadmapData = JSON.parse(text);
-            } catch (e) {
-                throw new Error("Invalid JSON returned from Groq SDK");
-            }
-        } else {
-            console.log('Falling back to direct HTTP or local proxy');
-            // We can use the Local proxy logic requested if API key is in other service
-            // The user mentioned: Groq API base URL: http://localhost:5001/groq
-            try {
-                const aiResponse = await axios.post('http://localhost:5001/groq/chat', { prompt, format: 'json' }, { timeout: 30000 });
-                aiRoadmapData = aiResponse.data.roadmap ? aiResponse.data : JSON.parse(aiResponse.data.text || '{}');
-            } catch (proxyError) {
-                console.log('Proxy failed, building fallback static roadmap');
-                aiRoadmapData = generateFallback(missingSkills);
-            }
+            aiRoadmapData = JSON.parse(text);
+        } catch (e) {
+            console.error("Groq generation failed directly, sending fallback.", e);
+            aiRoadmapData = generateFallback(missingSkills);
         }
 
         if (!aiRoadmapData || !aiRoadmapData.roadmap) {

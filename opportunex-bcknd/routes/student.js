@@ -77,6 +77,15 @@ router.post(
   studentController.analyzeResume
 );
 
+// 📄 UPLOAD RESUME (NO AI)
+router.post(
+  "/upload-resume",
+  verifyToken,
+  authorize(["student"]),
+  upload.single("resume"),
+  studentController.uploadResume
+);
+
 // Multer error handler (CRITICAL)
 router.use((err, req, res, next) => {
   console.error("❌ Multer error:", err.message);

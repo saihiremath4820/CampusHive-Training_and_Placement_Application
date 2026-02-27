@@ -10,6 +10,13 @@ export const saveStudentProfile = (profileData) => {
   return api.put("/student/profile", profileData);
 };
 
+// Upload Resume
+export const uploadStudentResume = (formData) => {
+  return api.post("/student/upload-resume", formData, {
+    headers: { "Content-Type": "multipart/form-data" }
+  });
+};
+
 // Get student's applications
 export const getStudentApplications = () => {
   return api.get("/application/student");

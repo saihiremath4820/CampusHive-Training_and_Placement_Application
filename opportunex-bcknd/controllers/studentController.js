@@ -56,7 +56,8 @@ exports.getProfile = async (req, res) => {
         interests: "",
         linkedin: "",
         github: "",
-        projects: ""
+        projects: "",
+        resumePath: ""
       });
     }
 
@@ -77,6 +78,24 @@ exports.getProfile = async (req, res) => {
   } catch (err) {
     console.error("Profile fetch error:", err);
     res.status(500).json({ error: "Failed to fetch profile" });
+  }
+};
+
+// GET student profile
+
+// UPLOAD resume without AI
+exports.uploadResume = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "Resume file is required" });
+    const profile = await StudentProfile.findOneAndUpdate(
+      { userId: req.user.id },
+      { resumePath: req.file.path },
+      { new: true, upsert: true }
+    );
+    res.json({ success: true, resumePath: req.file.path });
+  } catch (err) {
+    console.error("Resume upload error:", err);
+    res.status(500).json({ error: "Failed to upload resume" });
   }
 };
 
