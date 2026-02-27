@@ -3,7 +3,8 @@ import {
   getStudentProfile,
   saveStudentProfile,
   getStudentApplications,
-  applyToOpportunity as postApplication
+  applyToOpportunity as postApplication,
+  uploadStudentResume
 } from "../services/studentService";
 import toast from "react-hot-toast";
 
@@ -58,6 +59,20 @@ export const StudentProvider = ({ children }) => {
       if (profRes.data) {
         setProfile(profRes.data);
         sessionStorage.setItem("studentProfile", JSON.stringify(profRes.data));
+
+        // Populate resume if it exists in DB!
+        if (profRes.data.resumePath) {
+          const filename = profRes.data.resumePath.split(/[/\\]/).pop();
+          // Defaulting to the backend API route if we know the domain, but using relative is better if possible.
+          // However, API endpoint needs the full URL or proxy handled by vite.
+          const { default: api } = await import("../services/api");
+          const previewUrl = `${api.defaults.baseURL}/student/resume/view/${filename}`;
+
+          const r = { name: filename, size: 0, previewUrl };
+          setResume(r);
+          sessionStorage.setItem("resume", JSON.stringify(r));
+        }
+
         setIsFirstLogin(false);
       }
 
@@ -100,9 +115,27 @@ export const StudentProvider = ({ children }) => {
 
 
   /* ---------- RESUME ---------- */
-  const updateResume = (resumeData) => {
+  const updateResume = async (file) => {
+    const formData = new FormData();
+    formData.append("resume", file);
+
+    const res = await uploadStudentResume(formData);
+
+    const resumeData = {
+      name: file.name,
+      size: file.size,
+      previewUrl: URL.createObjectURL(file)
+    };
+
     setResume(resumeData);
-    sessionStorage.setItem("resume", JSON.stringify(resumeData)); // Changed from localStorage to sessionStorage
+    sessionStorage.setItem("resume", JSON.stringify(resumeData));
+
+    if (profile) {
+      const updatedProfile = { ...profile, resumePath: res.data.resumePath };
+      setProfile(updatedProfile);
+      sessionStorage.setItem("studentProfile", JSON.stringify(updatedProfile));
+    }
+
     addNotification("Resume uploaded successfully");
   };
 

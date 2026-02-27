@@ -91,19 +91,26 @@ export default function Profile() {
     }
   };
 
-  const handleResumeUpload = (e) => {
+  const handleResumeUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (file.type !== "application/pdf") { toast.error("Only PDF allowed"); return; }
     if (file.size > MAX_RESUME_SIZE) { toast.error("File too large (Max 2MB)"); return; }
-    updateResume({ name: file.name, size: file.size, previewUrl: URL.createObjectURL(file) });
-    toast.success("Resume attached!");
+
+    const loadingToast = toast.loading("Uploading resume...");
+    try {
+      await updateResume(file);
+      toast.success("Resume attached!", { id: loadingToast });
+    } catch (err) {
+      toast.error("Failed to upload resume to server", { id: loadingToast });
+    }
   };
 
   const inputStyle = {
     width: "100%", padding: "0.75rem 1rem 0.75rem 2.75rem",
     background: "var(--surface)", border: "1px solid var(--border)",
     borderRadius: "0.75rem", outline: "none", fontSize: "0.875rem",
+    fontFamily: "inherit",
     fontWeight: 700, color: "var(--text)", boxSizing: "border-box",
     transition: "border-color 0.2s"
   };
