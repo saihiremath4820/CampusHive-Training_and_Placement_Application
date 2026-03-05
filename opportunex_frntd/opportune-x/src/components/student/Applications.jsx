@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { useStudent } from "../../context/StudentContext";
 import {
-  Building2, Clock, CheckCircle2, XCircle, ArrowUpRight, AlertCircle, FileText, History, Inbox
+  Building2, Clock, CheckCircle2, XCircle, ArrowUpRight, AlertCircle, FileText, History, Inbox, ExternalLink
 } from "lucide-react";
+import CompanyProfileModal from "./CompanyProfileModal";
 
 const STATUS_CONFIG = {
   Applied: { color: "var(--accent)", bg: "rgba(27,79,216,0.1)", label: "Applied", icon: FileText },
@@ -15,8 +16,18 @@ const ACTIVE_STATUSES = ["Applied", "Shortlisted"];
 const PAST_STATUSES = ["Selected", "Rejected"];
 
 export default function Applications() {
-  const { applications } = useStudent();
+  const studentContext = useStudent();
+  const { applications = [] } = studentContext || {};
   const [activeTab, setActiveTab] = useState("active");
+
+  const [selectedCompanyId, setSelectedCompanyId] = useState(null);
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
+
+  const handleCompanyClick = (companyId) => {
+    if (!companyId) return;
+    setSelectedCompanyId(companyId);
+    setShowCompanyModal(true);
+  };
 
   const activeApps = useMemo(() =>
     (applications || []).filter(a => ACTIVE_STATUSES.includes(a.status || "Applied")),
@@ -40,72 +51,54 @@ export default function Applications() {
         <h2 style={{ fontSize: "1.8rem", fontWeight: 900, color: "var(--text)", margin: "0 0 0.25rem", letterSpacing: "-0.03em" }}>
           My Applications
         </h2>
-        <p style={{ color: "var(--text)", opacity: 0.55, fontWeight: 500, margin: 0 }}>
-          Track all your placement drive applications in one place.
+        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", margin: 0 }}>
+          Track your placement process and interview statuses.
         </p>
       </div>
 
-      {/* Tab Switcher */}
-      <div style={{ display: "flex", gap: 8 }}>
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: "1rem", borderBottom: "1px solid var(--border)", marginBottom: "0.5rem" }}>
         <button
           onClick={() => setActiveTab("active")}
           style={{
-            padding: "8px 18px", borderRadius: 20, fontSize: 12, fontWeight: 700,
-            border: `1px solid ${activeTab === "active" ? "var(--accent)" : "var(--border)"}`,
-            background: activeTab === "active" ? "rgba(27,79,216,0.08)" : "var(--surface)",
+            padding: "0.75rem 0", background: "none", border: "none",
             color: activeTab === "active" ? "var(--accent)" : "var(--text-muted)",
-            cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 6,
+            fontWeight: activeTab === "active" ? 700 : 600,
+            borderBottom: activeTab === "active" ? "2px solid var(--accent)" : "2px solid transparent",
+            display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer", fontSize: "0.9rem"
           }}
         >
-          <Inbox size={13} /> Active Applications
-          <span style={{ background: activeTab === "active" ? "var(--accent)" : "var(--border)", color: activeTab === "active" ? "#fff" : "var(--text-muted)", borderRadius: 10, padding: "1px 7px", fontSize: 10, fontWeight: 800 }}>
-            {activeApps.length}
-          </span>
+          <Clock size={16} /> Active Process <span style={{ background: activeTab === "active" ? "rgba(27,79,216,0.1)" : "var(--surface)", color: activeTab === "active" ? "var(--accent)" : "inherit", padding: "2px 8px", borderRadius: "10px", fontSize: "0.75rem" }}>{activeApps.length}</span>
         </button>
         <button
-          onClick={() => setActiveTab("history")}
+          onClick={() => setActiveTab("past")}
           style={{
-            padding: "8px 18px", borderRadius: 20, fontSize: 12, fontWeight: 700,
-            border: `1px solid ${activeTab === "history" ? "var(--purple)" : "var(--border)"}`,
-            background: activeTab === "history" ? "rgba(139,92,246,0.08)" : "var(--surface)",
-            color: activeTab === "history" ? "var(--purple)" : "var(--text-muted)",
-            cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 6,
+            padding: "0.75rem 0", background: "none", border: "none",
+            color: activeTab === "past" ? "var(--text)" : "var(--text-muted)",
+            fontWeight: activeTab === "past" ? 700 : 600,
+            borderBottom: activeTab === "past" ? "2px solid var(--text)" : "2px solid transparent",
+            display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer", fontSize: "0.9rem"
           }}
         >
-          <History size={13} /> Past History
-          <span style={{ background: activeTab === "history" ? "var(--purple)" : "var(--border)", color: activeTab === "history" ? "#fff" : "var(--text-muted)", borderRadius: 10, padding: "1px 7px", fontSize: 10, fontWeight: 800 }}>
-            {pastApps.length}
-          </span>
+          <History size={16} /> Past Applications <span style={{ background: "var(--surface)", padding: "2px 8px", borderRadius: "10px", fontSize: "0.75rem" }}>{pastApps.length}</span>
         </button>
       </div>
 
-      {/* Empty States */}
-      {displayList.length === 0 && (
-        <div style={{ textAlign: "center", padding: "60px 20px", border: "1px dashed var(--border)", borderRadius: 12, color: "var(--text-muted)" }}>
-          {activeTab === "active" ? (
-            <>
-              <Inbox size={40} style={{ opacity: 0.2, marginBottom: 12 }} />
-              <p style={{ fontSize: 15, fontWeight: 600 }}>No active applications</p>
-              <p style={{ fontSize: 13, marginTop: 4 }}>Browse the Jobs & Internships tab and apply to get started!</p>
-            </>
-          ) : (
-            <>
-              <History size={40} style={{ opacity: 0.2, marginBottom: 12 }} />
-              <p style={{ fontSize: 15, fontWeight: 600 }}>No placement history yet</p>
-              <p style={{ fontSize: 13, marginTop: 4 }}>Your completed applications (Selected / Rejected) will appear here.</p>
-            </>
-          )}
-        </div>
-      )}
+      {/* List */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {displayList.length === 0 && (
+          <div style={{ padding: "4rem 2rem", textAlign: "center", color: "var(--text-muted)", background: "var(--surface)", borderRadius: "1rem", border: "1px dashed var(--border)" }}>
+            <Inbox size={48} style={{ opacity: 0.2, margin: "0 auto 1rem" }} />
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text)", margin: "0 0 0.5rem" }}>No {activeTab} applications</h3>
+            <p style={{ margin: 0, fontSize: "0.9rem" }}>When you apply to placement drives, tracking will appear here.</p>
+          </div>
+        )}
 
-      {/* Applications List */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
         {displayList.map((app) => {
           const statusKey = app.status || "Applied";
           const cfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG.Applied;
           const StatusIcon = cfg.icon;
+
           const isSelected = statusKey === "Selected";
           const isRejected = statusKey === "Rejected";
           const appliedDate = app.appliedAt || app.createdAt;
@@ -137,8 +130,14 @@ export default function Applications() {
                       {app.title || "Placement Drive"}
                     </h3>
                     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.6rem", marginTop: "0.25rem" }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem", fontWeight: 700, color: "var(--text)", opacity: 0.6 }}>
+                      <span
+                        className="company-name-link"
+                        onClick={() => handleCompanyClick(app.companyProfileId)}
+                        title="View corporate profile"
+                        style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem", fontWeight: 700, color: "var(--text)", cursor: "pointer" }}
+                      >
                         <Building2 size={12} style={{ flexShrink: 0 }} /> {app.company || "Corporate Partner"}
+                        <ExternalLink size={10} style={{ marginLeft: "2px", opacity: 0.8, color: "#1d4ed8" }} />
                       </span>
                       {appliedDate && (
                         <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 600 }}>
@@ -159,19 +158,34 @@ export default function Applications() {
 
               {/* Special messages */}
               {isSelected && (
-                <div style={{ marginTop: "1rem", padding: "10px 14px", background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 8, fontSize: 13, color: "var(--green)", fontWeight: 600 }}>
-                  🎉 Congratulations! You have been selected for this role. The company will reach out to you soon.
+                <div style={{ marginTop: "1rem", padding: "1rem", background: "white", borderRadius: "0.75rem", border: "1px solid rgba(16,185,129,0.2)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text)", marginBottom: "0.2rem" }}>Congratulations! 🎉</div>
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", lineHeight: 1.4 }}>You have been selected for this role. HR will contact you shortly with further details.</div>
+                  </div>
+                  <button style={{ padding: "0.5rem 1rem", background: "var(--green)", color: "white", borderRadius: "0.5rem", border: "none", fontWeight: 700, fontSize: "0.8rem", cursor: "pointer" }}>View Offer Details</button>
                 </div>
               )}
+
               {isRejected && (
-                <div style={{ marginTop: "1rem", padding: "10px 14px", background: "rgba(200,75,49,0.05)", border: "1px solid rgba(200,75,49,0.15)", borderRadius: 8, fontSize: 13, color: "var(--text-muted)" }}>
-                  💪 Keep applying! Every rejection is one step closer to the right opportunity.
+                <div style={{ marginTop: "1rem", padding: "0.75rem 1rem", background: "rgba(200,75,49,0.05)", borderRadius: "0.5rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                  Unfortunately, you were not selected for this role. Don't worry, many more opportunities are coming up!
                 </div>
               )}
             </div>
           );
         })}
       </div>
+
+      {showCompanyModal && selectedCompanyId && (
+        <CompanyProfileModal
+          companyId={selectedCompanyId}
+          onClose={() => {
+            setShowCompanyModal(false);
+            setSelectedCompanyId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

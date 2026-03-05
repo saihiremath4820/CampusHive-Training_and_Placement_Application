@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, ArrowLeft, Send, CheckCircle2, ShieldAlert } from "lucide-react";
 import AuthLayout from "./shared/AuthLayout";
-import { toast } from "react-hot-toast";
+import toast from './common/toastManager';
 
 const ForgotPassword = ({ onSwitch }) => {
     const [email, setEmail] = useState("");

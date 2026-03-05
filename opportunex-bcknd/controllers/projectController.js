@@ -119,22 +119,24 @@ exports.updateProjectApplicationStatus = async (req, res) => {
 
 exports.getFacultyApplications = async (req, res) => {
     try {
+        const StudentProfile = require("../models/StudentProfile");
+
         // Find all projects created by this faculty
         const projects = await Project.find({ createdBy: req.user.id })
-            .populate("applicants.student", "name email branch year");
+            .populate("applicants.student", "name email");
 
         // Flatten the list: [Project] -> [Application]
-        let allApplications = [];
+        let rawApplications = [];
         projects.forEach(p => {
             p.applicants.forEach(app => {
-                if (app.student) { // Ensure student exists (not deleted)
-                    allApplications.push({
+                if (app.student) {
+                    rawApplications.push({
                         projectId: p._id,
                         projectTitle: p.title,
+                        projectDomain: p.domain || "",
+                        projectDescription: p.description || "",
                         studentId: app.student._id,
                         name: app.student.name,
-                        branch: app.student.branch || "N/A", // Fallback
-                        year: app.student.year || "N/A",
                         status: app.status,
                         rejectionReason: app.rejectionReason,
                         appliedAt: app.appliedAt
@@ -142,6 +144,22 @@ exports.getFacultyApplications = async (req, res) => {
                 }
             });
         });
+
+        // Enrich each application with StudentProfile data (branch, year, skills, resume, cgpa)
+        const allApplications = await Promise.all(
+            rawApplications.map(async (app) => {
+                const profile = await StudentProfile.findOne({ userId: app.studentId })
+                    .select("branch year skills resumePath cgpa").lean();
+                return {
+                    ...app,
+                    branch: profile?.branch || "N/A",
+                    year: profile?.year || "N/A",
+                    skills: profile?.skills || [],
+                    resumePath: profile?.resumePath || null,
+                    cgpa: profile?.cgpa || null
+                };
+            })
+        );
 
         res.json(allApplications);
     } catch (err) {

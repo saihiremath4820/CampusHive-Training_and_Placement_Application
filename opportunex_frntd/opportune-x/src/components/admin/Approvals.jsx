@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Building2, GraduationCap } from "lucide-react";
-import toast from 'react-hot-toast';
+import toast from '../common/toastManager';
 import {
   getPendingCompanies,
   approveCompany,

@@ -3,7 +3,7 @@ import {
   FilePlus, Type, AlignLeft, Database, Calendar,
   PlusCircle, ArrowRight, Target, Sparkles, Info, X, Loader2, GitCommit, ClipboardList
 } from "lucide-react";
-import toast from 'react-hot-toast';
+import toast from '../common/toastManager';
 import axios from "axios";
 
 export default function ProjectPostForm() {

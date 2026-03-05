@@ -52,6 +52,20 @@ const opportunitySchema = new mongoose.Schema(
       type: String,
     },
 
+    minTenth: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0
+    },
+
+    minTwelfth: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0
+    },
+
     dataRequirements: {
       type: [String],
       default: ["Resume", "CGPA", "Contact Number"],

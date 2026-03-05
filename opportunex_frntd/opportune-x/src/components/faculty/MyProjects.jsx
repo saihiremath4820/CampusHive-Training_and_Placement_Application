@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { FolderGit2, Calendar, Target, Clock, Loader2, Trash2, Sparkles, FolderIcon, MoreVertical } from "lucide-react";
-import toast from "react-hot-toast";
+import toast from '../common/toastManager';
 
 import ExpandableText from "../shared/ExpandableText";
 

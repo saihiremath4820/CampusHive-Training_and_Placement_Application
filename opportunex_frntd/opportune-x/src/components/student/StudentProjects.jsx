@@ -5,7 +5,7 @@ import {
     ChevronRight, Target, User, Users, Loader2,
     BookOpen, Code2
 } from "lucide-react";
-import toast from 'react-hot-toast';
+import toast from '../common/toastManager';
 import LoadingSpinner from "../admin/shared/LoadingSpinner";
 import ExpandableText from "../shared/ExpandableText";
 

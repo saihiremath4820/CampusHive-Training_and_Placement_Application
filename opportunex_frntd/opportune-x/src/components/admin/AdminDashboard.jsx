@@ -148,14 +148,16 @@ export default function AdminDashboard({ onLogout }) {
   return (
     <div className="app-layout">
       {/* ── Sidebar ───────────────────────────────── */}
-      <AdminSidebar
-        active={activeTab}
-        setActive={setActiveTab}
-        darkMode={false}
-      />
+      {sidebarOpen && (
+        <AdminSidebar
+          active={activeTab}
+          setActive={setActiveTab}
+          darkMode={false}
+        />
+      )}
 
       {/* ── Main Content ──────────────────────────── */}
-      <div className="main-content">
+      <div className={sidebarOpen ? "main-content" : "main-content-full"}>
 
         {/* ── Header ────────────────────────────── */}
         <header style={{

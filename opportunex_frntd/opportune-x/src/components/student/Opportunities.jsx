@@ -1,22 +1,14 @@
 import { useEffect, useState } from "react";
 import { useStudent } from "../../context/StudentContext";
 import { getStudentOpportunities } from "../../services/opportunityService";
+import { useSocket } from "../../context/SocketContext";
+import toast from '../common/toastManager';
 import {
   Briefcase, MapPin, CheckCircle2, Sparkles,
-  Target, Zap, AlertCircle, X, Building2, Clock
+  Target, Zap, AlertCircle, X, Building2, Clock, ExternalLink
 } from "lucide-react";
-import LoadingSpinner from "../admin/shared/LoadingSpinner";
-
-const PUNE_FALLBACK_OPPORTUNITIES = [
-  { _id: "p1", title: "Software Engineer (SDE-1)", companyName: "Persistent Systems", type: "Full Time", location: "Pune, MH", fitPercentage: 87, requiredSkills: ["Java", "Spring Boot", "MySQL", "REST APIs"], missingSkills: [] },
-  { _id: "p2", title: "Technology Analyst", companyName: "Barclays", type: "Full Time", location: "Pune, MH", fitPercentage: 81, requiredSkills: ["Python", "SQL", "Excel", "JIRA"], missingSkills: [] },
-  { _id: "p3", title: "SDE Intern → PPO", companyName: "PhonePe", type: "Internship", location: "Bangalore", fitPercentage: 92, requiredSkills: ["DSA", "Java", "System Design", "OOP"], missingSkills: [] },
-  { _id: "p4", title: "Data Engineer Intern", companyName: "ZS Associates", type: "Internship", location: "Pune, MH", fitPercentage: 78, requiredSkills: ["PySpark", "SQL", "Hadoop", "Airflow"], missingSkills: ["Airflow"] },
-  { _id: "p5", title: "Associate Software Engineer", companyName: "Adobe", type: "Full Time", location: "Noida", fitPercentage: 88, requiredSkills: ["C++", "DSA", "OS", "DBMS"], missingSkills: [] },
-  { _id: "p6", title: "Graduate Software Engineer", companyName: "HSBC", type: "Full Time", location: "Pune, MH", fitPercentage: 75, requiredSkills: ["Java", "SQL", "Spring", "Microservices"], missingSkills: ["Microservices"] },
-  { _id: "p7", title: "Frontend Developer Intern", companyName: "Morgan Stanley", type: "Internship", location: "Mumbai", fitPercentage: 84, requiredSkills: ["React", "TypeScript", "CSS", "Git"], missingSkills: [] },
-  { _id: "p8", title: "ML Engineer", companyName: "Qualcomm India", type: "Full Time", location: "Hyderabad", fitPercentage: 70, requiredSkills: ["Python", "TensorFlow", "C++", "DSP"], missingSkills: ["DSP"] },
-];
+import CompanyProfileModal from "./CompanyProfileModal";
+import ApplyModal from "./ApplyModal";
 
 const AVATAR_COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ec4899", "#14b8a6", "#8b5cf6", "#ef4444", "#0ea5e9"];
 
@@ -27,6 +19,20 @@ export default function Opportunities({ onNavigateToProfile }) {
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [pendingOpportunity, setPendingOpportunity] = useState(null);
   const [filter, setFilter] = useState("All");
+
+  const [selectedCompanyId, setSelectedCompanyId] = useState(null);
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
+
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [selectedOppForApply, setSelectedOppForApply] = useState(null);
+
+  const { socket } = useSocket();
+
+  const handleCompanyClick = (companyId) => {
+    if (!companyId) return;
+    setSelectedCompanyId(companyId);
+    setShowCompanyModal(true);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -44,26 +50,44 @@ export default function Opportunities({ onNavigateToProfile }) {
     };
     fetchOpportunities(true);
     intervalId = setInterval(() => fetchOpportunities(false), 15000);
-    return () => { isMounted = false; if (intervalId) clearInterval(intervalId); };
-  }, []);
+
+    if (socket) {
+      socket.on("new_opportunity", (data) => {
+        if (isMounted) {
+          fetchOpportunities(false);
+          toast.info(`New Opportunity! ${data.opportunity?.company} is hiring for ${data.opportunity?.title}`);
+        }
+      });
+    }
+
+    return () => {
+      isMounted = false;
+      if (intervalId) clearInterval(intervalId);
+      if (socket) socket.off("new_opportunity");
+    };
+  }, [socket]);
 
   const handleApplyClick = async (op) => {
     if (!isProfileMandatoryComplete() || !resume) {
       setPendingOpportunity(op);
       setShowBlockModal(true);
     } else {
-      await applyToOpportunity(op);
+      const required = op.dataRequirements || [];
+      const extraFields = required.filter(r => !['Resume', 'CGPA', 'Contact Number'].includes(r));
 
-      // Auto-generate roadmap for missing skills after successful apply
-      const studentSkillsLower = (profile?.skills || []).map(s => (s?.name || s || "").toLowerCase());
-      const jobSkills = op.requiredSkills || [];
-      const missing = jobSkills.filter(s => !studentSkillsLower.includes(s.toLowerCase()));
-      if (missing.length > 0) {
-        // Give a short toast before starting AI generation
-        const toastId = missing.length;
-        generateRoadmap(missing, op.title || "software-engineer").catch(() => { });
+      if (extraFields.length > 0) {
+        setSelectedOppForApply(op);
+        setShowApplyModal(true);
+      } else {
+        await executeApply(op, {});
       }
     }
+  };
+
+  const executeApply = async (op, formData) => {
+    await applyToOpportunity(op, formData);
+    setShowApplyModal(false);
+    setSelectedOppForApply(null);
   };
 
   if (loading) return (
@@ -85,7 +109,7 @@ export default function Opportunities({ onNavigateToProfile }) {
     </div>
   );
 
-  const displayOps = opportunities.length > 0 ? opportunities : PUNE_FALLBACK_OPPORTUNITIES;
+  const displayOps = opportunities;
   const isFallback = opportunities.length === 0;
   const FILTERS = ["All", "Full Time", "Internship"];
   const filtered = filter === "All" ? displayOps : displayOps.filter(o => (o.type || "").toLowerCase().includes(filter.toLowerCase()));
@@ -131,18 +155,17 @@ export default function Opportunities({ onNavigateToProfile }) {
         ))}
       </div>
 
-
       {/* ── FALLBACK NOTICE ── */}
       {isFallback && (
         <div style={{
-          padding: "0.75rem 1.25rem", background: "rgba(99,102,241,0.06)",
-          border: "1px solid rgba(99,102,241,0.15)", borderRadius: "0.75rem",
-          display: "flex", alignItems: "center", gap: "0.65rem"
+          padding: "2rem",
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: "1rem",
+          color: "var(--text-muted)", textAlign: "center", gap: "0.5rem"
         }}>
-          <Sparkles size={14} style={{ color: "var(--accent)", flexShrink: 0 }} />
-          <span style={{ fontSize: "0.77rem", fontWeight: 600, color: "var(--text)", opacity: 0.65 }}>
-            Sample opportunities from PICT recruiters 🏛️ — real listings appear once companies post on the platform.
-          </span>
+          <Briefcase size={32} style={{ opacity: 0.3, marginBottom: "0.5rem" }} />
+          <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text)", margin: 0 }}>No drives available</h3>
+          <p style={{ fontSize: "0.85rem", margin: 0 }}>Check back later once recruiters post new roles that match your profile.</p>
         </div>
       )}
 
@@ -153,16 +176,13 @@ export default function Opportunities({ onNavigateToProfile }) {
           const jobSkills = op.requiredSkills || [];
           const backendMissingSkills = op.missingSkills || [];
 
-          // Use backend's fit score if available (proper 0-100%), else compute client-side
           let numericFit = (op.fitPercentage != null) ? op.fitPercentage : null;
           let fitLabel;
 
           if (numericFit != null) {
-            // Backend computed real score — show it with matched count for clarity
             const matchedCount = jobSkills.length - backendMissingSkills.length;
             fitLabel = `${matchedCount}/${jobSkills.length} Skills`;
           } else if (jobSkills.length > 0) {
-            // Fallback: compute client-side from profile
             const studentSkillsLower = (profile?.skills || []).map(s => (s?.name || s || "").toLowerCase());
             const matchCount = jobSkills.filter(s => studentSkillsLower.includes(s.toLowerCase())).length;
             numericFit = Math.round((matchCount / jobSkills.length) * 100);
@@ -177,7 +197,6 @@ export default function Opportunities({ onNavigateToProfile }) {
           const avatarColor = AVATAR_COLORS[idx % AVATAR_COLORS.length];
           const fitColor = isExcellentFit ? "#22c55e" : isGoodFit ? "var(--accent)" : "#f59e0b";
           const showFitBadge = jobSkills.length > 0;
-          // Show missing skills from backend; fallback to client-side compute
           const effectiveMissingSkills = backendMissingSkills.length > 0
             ? backendMissingSkills
             : jobSkills.filter(s => !(profile?.skills || []).map(sk => (sk?.name || sk || "").toLowerCase()).includes(s.toLowerCase()));
@@ -189,7 +208,6 @@ export default function Opportunities({ onNavigateToProfile }) {
               border: "1px solid var(--border)", transition: "box-shadow 0.2s, border-color 0.2s",
               minWidth: 0
             }}>
-              {/* Top row: avatar + title + fit badge */}
               <div style={{ display: "flex", alignItems: "flex-start", gap: "0.875rem", minWidth: 0 }}>
                 <div style={{
                   width: "2.75rem", height: "2.75rem", borderRadius: "0.75rem", flexShrink: 0,
@@ -203,13 +221,20 @@ export default function Opportunities({ onNavigateToProfile }) {
                   <h3 style={{ fontSize: "0.95rem", fontWeight: 900, color: "var(--text)", margin: "0 0 0.2rem", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {op.title}
                   </h3>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
-                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text)", opacity: 0.6 }}>{op.companyName || "Top Recruiter"}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.3rem" }}>
+                    <span
+                      className="company-name-link"
+                      onClick={() => handleCompanyClick(op.companyProfileId)}
+                      title="View corporate profile"
+                      style={{ fontSize: "0.8rem" }}
+                    >
+                      {op.companyName || "Top Recruiter"}
+                      <ExternalLink size={10} style={{ marginLeft: "2px", opacity: 0.8 }} />
+                    </span>
                     <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--border)", display: "inline-block", flexShrink: 0 }} />
                     <span style={{ fontSize: "0.6rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em", color: avatarColor }}>{op.type || "Full Time"}</span>
                   </div>
                 </div>
-                {/* Fit badge */}
                 {showFitBadge && (
                   <div style={{
                     padding: "0.3rem 0.65rem", borderRadius: "0.5rem", flexShrink: 0,
@@ -223,14 +248,12 @@ export default function Opportunities({ onNavigateToProfile }) {
                 )}
               </div>
 
-              {/* Fit bar */}
               {showFitBadge && (
                 <div style={{ background: "var(--surface)", borderRadius: "0.375rem", height: "4px", overflow: "hidden" }}>
                   <div style={{ width: `${numericFit}%`, height: "100%", background: fitColor, borderRadius: "0.375rem", transition: "width 0.5s" }} />
                 </div>
               )}
 
-              {/* Skills */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", minWidth: 0 }}>
                 {op.requiredSkills.slice(0, 5).map((skill, i) => (
                   <span key={i} style={{
@@ -244,17 +267,34 @@ export default function Opportunities({ onNavigateToProfile }) {
                 )}
               </div>
 
-              {/* Footer */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "0.875rem", borderTop: "1px solid var(--border)", marginTop: "auto" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                  <MapPin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />
-                  <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text)", opacity: 0.65 }}>{op.location || "On-site / Remote"}</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                    <MapPin size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                    <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text)", opacity: 0.65 }}>{op.location || "On-site / Remote"}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: "1rem" }}>
+                    {op.requiredCGPA && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                        <Target size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text)", opacity: 0.65 }}>CGPA: {op.requiredCGPA}</span>
+                      </div>
+                    )}
+                    {op.deadline && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                        <Clock size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />
+                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text)", opacity: 0.65 }}>
+                          Exp: {new Date(op.deadline).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
                   {effectiveMissingSkills.length > 0 && (
                     <button
                       onClick={() => generateRoadmap(effectiveMissingSkills, op.title)}
-                      title={`Generate roadmap for ${effectiveMissingSkills.length} missing skill${effectiveMissingSkills.length > 1 ? 's' : ''}`}
+                      title={`Generate roadmap for ${effectiveMissingSkills.length} missing skills`}
                       style={{
                         padding: "0.45rem", borderRadius: "0.5rem", background: "rgba(99,102,241,0.08)",
                         border: "1px solid rgba(99,102,241,0.25)", color: "var(--accent)", cursor: "pointer", display: "flex",
@@ -285,7 +325,7 @@ export default function Opportunities({ onNavigateToProfile }) {
 
       {/* ── BLOCKING MODAL ── */}
       {showBlockModal && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}>
           <div className="panel" style={{ width: "100%", maxWidth: "26rem", padding: "2.5rem", textAlign: "center" }}>
             <div style={{ width: "3.5rem", height: "3.5rem", margin: "0 auto 1.25rem", background: "rgba(239,68,68,0.1)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <AlertCircle size={24} style={{ color: "var(--red)" }} />
@@ -304,6 +344,29 @@ export default function Opportunities({ onNavigateToProfile }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── APPLY MODAL ── */}
+      {showApplyModal && selectedOppForApply && (
+        <ApplyModal
+          opportunity={selectedOppForApply}
+          onConfirm={(formData) => executeApply(selectedOppForApply, formData)}
+          onCancel={() => {
+            setShowApplyModal(false);
+            setSelectedOppForApply(null);
+          }}
+        />
+      )}
+
+      {/* ── COMPANY PROFILE MODAL ── */}
+      {showCompanyModal && selectedCompanyId && (
+        <CompanyProfileModal
+          companyId={selectedCompanyId}
+          onClose={() => {
+            setShowCompanyModal(false);
+            setSelectedCompanyId(null);
+          }}
+        />
       )}
     </div>
   );

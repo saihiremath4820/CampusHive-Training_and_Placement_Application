@@ -3,14 +3,14 @@ import {
   Briefcase, MapPin, ChevronRight, X,
   Users, ChevronDown, Loader2, Archive, Calendar, Clock, Filter
 } from "lucide-react";
-import toast from "react-hot-toast";
+import toast from '../common/toastManager';
 import { getCompanyOpportunities, closeOpportunity, deleteOpportunity } from "../../services/companyApi";
 
 
 const STATUS_TABS = ["Active", "Closed", "Archived"];
 const TYPE_OPTS = ["Full Time", "Part Time", "Internship", "Contract"];
 
-export default function CompanyOpportunities({ onViewApplicants, onCreateNew, onEditOpportunity }) {
+export default function CompanyOpportunities({ onRefresh, onViewApplicants, onCreateNew, onEditOpportunity }) {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Active");
@@ -36,6 +36,7 @@ export default function CompanyOpportunities({ onViewApplicants, onCreateNew, on
       await closeOpportunity(opp._id);
       setOpportunities(prev => prev.map(o => o._id === opp._id ? { ...o, status: "Closed" } : o));
       toast.success("Opening retired from talent pool.");
+      if (onRefresh) onRefresh();
     } catch { toast.error("Communication failure with recruiter API."); }
   };
 
@@ -45,6 +46,7 @@ export default function CompanyOpportunities({ onViewApplicants, onCreateNew, on
       await deleteOpportunity(id);
       setOpportunities(prev => prev.filter(o => o._id !== id));
       toast.success("Record cleared from database.");
+      if (onRefresh) onRefresh();
     } catch { toast.error("Failed to delete record."); }
   };
 
@@ -188,6 +190,13 @@ export default function CompanyOpportunities({ onViewApplicants, onCreateNew, on
                       ))}
                       {op.requiredSkills.length > 3 && (
                         <span style={{ fontSize: 10, color: "var(--accent)", fontWeight: 700 }}>+{op.requiredSkills.length - 3}</span>
+                      )}
+
+                      {op.minTenth > 0 && (
+                        <span className="pill pill-yellow" style={{ fontSize: 10 }}>10th: {op.minTenth}%+</span>
+                      )}
+                      {op.minTwelfth > 0 && (
+                        <span className="pill pill-yellow" style={{ fontSize: 10 }}>12th: {op.minTwelfth}%+</span>
                       )}
                     </div>
                   )}

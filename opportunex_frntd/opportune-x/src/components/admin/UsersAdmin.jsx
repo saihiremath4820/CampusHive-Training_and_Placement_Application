@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
-import { Search, Trash2, Users, UserX, UserCheck, Edit, X } from "lucide-react";
-import toast from "react-hot-toast";
-import { getAllUsers, updateUser, deleteUser, deactivateUser, reactivateUser } from "../../services/adminService";
+import { Search, Trash2, Users, UserX, UserCheck, Edit, X, UserPlus } from "lucide-react";
+import toast from '../common/toastManager';
+import { getAllUsers, updateUser, deleteUser, deactivateUser, reactivateUser, createUser } from "../../services/adminService";
 import LoadingSpinner from "./shared/LoadingSpinner";
 
 const ROLE_TABS = ["All", "student", "company", "faculty", "admin"];
@@ -21,6 +21,13 @@ export default function UsersAdmin() {
     const [confirmDelete, setConfirmDelete] = useState(null);
     const [editUser, setEditUser] = useState(null);
     const [editFormData, setEditFormData] = useState({});
+    const [addUserModalOpen, setAddUserModalOpen] = useState(false);
+    const [addFormData, setAddFormData] = useState({
+        name: "",
+        email: "",
+        password: "",
+        role: "faculty"
+    });
 
     async function fetchUsers() {
         try {
@@ -124,6 +131,22 @@ export default function UsersAdmin() {
         }
     }
 
+    async function handleAddSubmit(e) {
+        e.preventDefault();
+        setActionLoading("add_user");
+        try {
+            await createUser(addFormData);
+            toast.success("User added successfully");
+            setAddUserModalOpen(false);
+            setAddFormData({ name: "", email: "", password: "", role: "faculty" });
+            fetchUsers();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Failed to add user");
+        } finally {
+            setActionLoading(null);
+        }
+    }
+
     if (loading) return (
         <div style={{ padding: "60px 0", display: "flex", justifyContent: "center" }}>
             <LoadingSpinner size="lg" text="Loading users..." />
@@ -132,9 +155,18 @@ export default function UsersAdmin() {
 
     return (
         <div>
-            <div className="page-title-block">
-                <h1 className="page-title">User <em>Directory</em></h1>
-                <p className="page-subtitle">Search, filter, deactivate or permanently remove users.</p>
+            <div className="page-title-block" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                    <h1 className="page-title">User <em>Directory</em></h1>
+                    <p className="page-subtitle">Search, filter, deactivate or permanently remove users.</p>
+                </div>
+                <button
+                    onClick={() => setAddUserModalOpen(true)}
+                    className="btn-primary"
+                    style={{ padding: "8px 16px", fontSize: 13, display: "flex", gap: 6, alignItems: "center" }}
+                >
+                    <UserPlus size={16} /> Add User
+                </button>
             </div>
 
             {/* ── Role Tabs */}
@@ -401,6 +433,70 @@ export default function UsersAdmin() {
                                 <button type="button" onClick={() => setEditUser(null)} className="btn-ghost" disabled={!!actionLoading}>Cancel</button>
                                 <button type="submit" className="btn-primary" disabled={!!actionLoading}>
                                     {actionLoading === editUser._id + "_edit" ? "Saving..." : "Save Changes"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Add User Modal */}
+            {addUserModalOpen && (
+                <div style={{
+                    position: "fixed", inset: 0, zIndex: 60,
+                    background: "rgba(0,0,0,0.55)", display: "flex",
+                    alignItems: "center", justifyContent: "center", padding: 24
+                }}>
+                    <div className="panel" style={{ width: "100%", maxWidth: 500, padding: "24px 32px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                            <h2 style={{ margin: 0, fontSize: 18, color: "var(--text)" }}>Add New User</h2>
+                            <button onClick={() => setAddUserModalOpen(false)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}><X size={18} /></button>
+                        </div>
+                        <form onSubmit={handleAddSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                            <div className="form-field">
+                                <label>Role</label>
+                                <select className="form-input"
+                                    value={addFormData.role}
+                                    onChange={e => setAddFormData({ ...addFormData, role: e.target.value })}
+                                >
+                                    <option value="student">Student</option>
+                                    <option value="company">Company</option>
+                                    <option value="faculty">Faculty</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div className="form-field">
+                                <label>{addFormData.role === "company" ? "Company Name (or HR Name)" : "Full Name"}</label>
+                                <input type="text" className="form-input"
+                                    value={addFormData.name}
+                                    placeholder="Enter full name"
+                                    onChange={e => setAddFormData({ ...addFormData, name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="form-field">
+                                <label>Email Address</label>
+                                <input type="email" className="form-input"
+                                    value={addFormData.email}
+                                    placeholder="user@example.com"
+                                    onChange={e => setAddFormData({ ...addFormData, email: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="form-field">
+                                <label>Temporary Password</label>
+                                <input type="text" className="form-input"
+                                    value={addFormData.password}
+                                    placeholder="e.g. Faculty@123"
+                                    onChange={e => setAddFormData({ ...addFormData, password: e.target.value })}
+                                    required
+                                />
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 12 }}>
+                                <button type="button" onClick={() => setAddUserModalOpen(false)} className="btn-ghost" disabled={actionLoading === "add_user"}>Cancel</button>
+                                <button type="submit" className="btn-primary" disabled={actionLoading === "add_user"}>
+                                    {actionLoading === "add_user" ? "Adding..." : "Add User"}
                                 </button>
                             </div>
                         </form>

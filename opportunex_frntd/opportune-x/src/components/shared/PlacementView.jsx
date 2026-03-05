@@ -18,6 +18,8 @@ import {
     getPlacementOverview,
 } from "../../services/adminPlacementService";
 import { getPublicSettings } from "../../services/authService";
+import RecruiterCard from "./RecruiterCard";
+import TrainingCard from "./TrainingCard";
 
 /* ─── FALLBACK / STATIC DATA (used only when API returns empty) ── */
 
@@ -69,6 +71,7 @@ function Spinner() {
 export default function PlacementView({ role = "student" }) {
     const [activeYear, setActiveYear] = useState(0);
     const [activeSection, setActiveSection] = useState("overview");
+    const [descExpanded, setDescExpanded] = useState(false);
 
     // --- Live data from admin API ---
     const [stats, setStats] = useState([]);
@@ -115,6 +118,7 @@ export default function PlacementView({ role = "student" }) {
                 parseInt((b.academicYear || "0").split("-")[0])
             );
             setStats(sortedStats);
+            if (sortedStats.length > 0) setActiveYear(sortedStats.length - 1);
 
             const rawObj = objRes.status === "fulfilled" ? (objRes.value.data || []) : [];
             setObjectives(rawObj);
@@ -158,6 +162,11 @@ export default function PlacementView({ role = "student" }) {
         return `${Math.floor(diff / 60)}m ago`;
     };
 
+    const fullDesc = overview?.description || `${COLLEGE_INFO.name} (${COLLEGE_INFO.shortName}) — empowering ${COLLEGE_INFO.students} students with industry connections, pre-placement training, and career opportunities since ${COLLEGE_INFO.established}.`;
+    const maxChars = 140;
+    const isLongDesc = fullDesc.length > maxChars;
+    const displayDesc = (!isLongDesc || descExpanded) ? fullDesc : `${fullDesc.substring(0, maxChars)}...`;
+
     const SECTIONS = [
         { id: "overview", label: "Overview", icon: BarChart2 },
         { id: "recruiters", label: "Recruiters", icon: Building2 },
@@ -179,7 +188,7 @@ export default function PlacementView({ role = "student" }) {
             <div style={{
                 borderRadius: "1.5rem", overflow: "hidden", position: "relative",
                 background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)",
-                padding: "3rem",
+                padding: "2rem",
                 boxShadow: "0 24px 60px rgba(99,102,241,0.25)"
             }}>
                 <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
@@ -205,12 +214,24 @@ export default function PlacementView({ role = "student" }) {
                         </button>
                     </div>
 
-                    <h1 style={{ fontSize: "2.5rem", fontWeight: 900, color: "#fff", letterSpacing: "-0.04em", lineHeight: 1.1, margin: "0 0 0.75rem" }}>
+                    <h1 style={{ fontSize: "2rem", fontWeight: 900, color: "#fff", letterSpacing: "-0.04em", lineHeight: 1.1, margin: "0 0 0.5rem" }}>
                         Placement Cell<br />
                         <span style={{ color: "#a5b4fc" }}>& Career Success Hub</span>
                     </h1>
-                    <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "1rem", fontWeight: 500, maxWidth: "560px", lineHeight: 1.65, margin: "0 0 2rem" }}>
-                        {overview?.description || `${COLLEGE_INFO.name} (${COLLEGE_INFO.shortName}) — empowering ${COLLEGE_INFO.students} students with industry connections, pre-placement training, and career opportunities since ${COLLEGE_INFO.established}.`}
+                    <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.95rem", fontWeight: 500, maxWidth: "560px", lineHeight: 1.6, margin: "0 0 1.5rem" }}>
+                        {displayDesc}
+                        {isLongDesc && (
+                            <button
+                                onClick={() => setDescExpanded(!descExpanded)}
+                                style={{
+                                    background: "none", border: "none", padding: 0, marginLeft: "0.5rem",
+                                    color: "#a5b4fc", fontSize: "0.85rem", fontWeight: 700, cursor: "pointer",
+                                    textDecoration: "underline"
+                                }}
+                            >
+                                {descExpanded ? "See less" : "See more"}
+                            </button>
+                        )}
                     </p>
 
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
@@ -372,35 +393,11 @@ export default function PlacementView({ role = "student" }) {
                             <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No recruiters added yet. Admin can add them from Placement → Recruiters.</p>
                         </div>
                     ) : (
-                        displayRecruiters.map((r, i) => (
-                            <div key={r._id || i} className="panel" style={{ position: "relative", overflow: "hidden" }}>
-                                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "4px", background: AVATAR_COLORS[i % AVATAR_COLORS.length], borderRadius: "4px 0 0 4px" }} />
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem", alignItems: "center", paddingLeft: "0.5rem" }}>
-                                    <div style={{
-                                        width: "3.5rem", height: "3.5rem", borderRadius: "0.85rem", flexShrink: 0,
-                                        background: `${AVATAR_COLORS[i % AVATAR_COLORS.length]}15`, border: `1px solid ${AVATAR_COLORS[i % AVATAR_COLORS.length]}30`,
-                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                        fontSize: "1.4rem", fontWeight: 900, color: AVATAR_COLORS[i % AVATAR_COLORS.length]
-                                    }}>{(r.companyName || "?").charAt(0)}</div>
-
-                                    <div style={{ flex: 1, minWidth: "180px" }}>
-                                        <h3 style={{ fontSize: "1.05rem", fontWeight: 900, color: "var(--text)", margin: "0 0 0.3rem" }}>{r.companyName}</h3>
-                                        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
-                                            {r.role && <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem", color: "var(--text)", opacity: 0.6 }}><Briefcase size={12} /> {r.role}</span>}
-                                        </div>
-                                        {r.description && <p style={{ fontSize: "0.78rem", color: "var(--text)", opacity: 0.5, margin: "0.35rem 0 0", lineHeight: 1.55 }}>{r.description}</p>}
-                                    </div>
-
-                                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                        {r.package && (
-                                            <p style={{ fontSize: "1.1rem", fontWeight: 900, color: "var(--green)", margin: "0 0 0.25rem" }}>
-                                                ₹{r.package} LPA
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        ))
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem', padding: '1rem 0' }}>
+                            {displayRecruiters.map((r, i) => (
+                                <RecruiterCard key={r._id || i} company={r} index={i} />
+                            ))}
+                        </div>
                     )}
                 </div>
             )}
@@ -459,34 +456,14 @@ export default function PlacementView({ role = "student" }) {
                             <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No training activities added yet. Admin can add them from Placement → Trainings.</p>
                         </div>
                     ) : (
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1rem" }}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                            gap: '1.25rem',
+                            padding: '1rem 0'
+                        }}>
                             {displayTrainings.map((t, i) => (
-                                <div key={t._id || i} className="panel" style={{ padding: "1.5rem", borderTop: `3px solid ${AVATAR_COLORS[i % AVATAR_COLORS.length]}` }}>
-                                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0.75rem" }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                            <div style={{ padding: "0.4rem", background: `${AVATAR_COLORS[i % AVATAR_COLORS.length]}15`, borderRadius: "0.5rem", color: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>
-                                                <BookOpen size={18} />
-                                            </div>
-                                            {t.category && (
-                                                <span style={{ fontSize: "0.6rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: AVATAR_COLORS[i % AVATAR_COLORS.length], opacity: 0.8 }}>{t.category}</span>
-                                            )}
-                                        </div>
-                                        {t.date && (
-                                            <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", fontFamily: "'DM Mono', monospace", textAlign: "right" }}>
-                                                {new Date(t.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <h4 style={{ fontSize: "1rem", fontWeight: 900, color: "var(--text)", margin: "0 0 0.35rem", lineHeight: 1.4 }}>{t.title || t.name}</h4>
-                                    {(t.resourcePerson || t.trainer) && (
-                                        <p style={{ fontSize: "0.72rem", color: "var(--accent)", marginTop: "0.35rem", fontWeight: 600, lineHeight: 1.5 }}>
-                                            👤 {t.resourcePerson || t.trainer}
-                                        </p>
-                                    )}
-                                    {t.description && (
-                                        <p style={{ fontSize: "0.8rem", color: "var(--text)", opacity: 0.55, margin: "0.4rem 0 0", lineHeight: 1.6 }}>{t.description}</p>
-                                    )}
-                                </div>
+                                <TrainingCard key={t._id || i} training={t} index={i} />
                             ))}
                         </div>
                     )}

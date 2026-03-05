@@ -19,6 +19,13 @@ const applicationSchema = new mongoose.Schema(
       enum: ["Applied", "Shortlisted", "Selected", "Rejected"],
       default: "Applied",
     },
+
+    submittedData: {
+      githubUrl: { type: String, default: null },
+      linkedinUrl: { type: String, default: null },
+      hasBacklog: { type: Boolean, default: null },
+      statementOfPurpose: { type: String, default: null },
+    },
   },
   {
     timestamps: true,

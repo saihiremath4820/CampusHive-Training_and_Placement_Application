@@ -2,6 +2,7 @@ const User = require("../models/User");
 const Opportunity = require("../models/Opportunity");
 const Application = require("../models/Application");
 const Setting = require("../models/Setting");
+const Notification = require("../models/Notification");
 const { createNotification } = require("./notificationController");
 
 /* ================= COMPANY APPROVALS ================= */
@@ -116,6 +117,40 @@ exports.approveDrive = async (req, res) => {
       link: "/dashboard",
       eventName: "drive_approved"
     });
+
+    // Emit socket event to notify all students in same college
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`college_${drive.collegeId}`).emit('new_opportunity', {
+        message: `New placement drive approved: ${drive.title}`,
+        opportunity: {
+          _id: drive._id,
+          title: drive.title,
+          company: drive.createdBy.name,
+          type: drive.type,
+          deadline: drive.deadline
+        }
+      });
+    }
+
+    // Get all students in this college
+    const students = await User.find({
+      collegeId: drive.collegeId,
+      role: 'student'
+    }).select('_id');
+
+    // Create notification for each student
+    if (students.length > 0) {
+      const notifications = students.map(student => ({
+        userId: student._id,
+        type: 'new_opportunity',
+        title: 'New Placement Drive Available',
+        message: `${drive.title} is now open for applications`,
+        relatedId: drive._id,
+        read: false
+      }));
+      await Notification.insertMany(notifications);
+    }
 
     res.json({ message: "Drive approved", drive });
   } catch (err) {
@@ -247,6 +282,67 @@ exports.getAllApplications = async (req, res) => {
 };
 
 /* ================= USERS ================= */
+
+exports.createUser = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+    const { collegeId } = req.user; // Admin's college ID
+
+    // Validate input
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ message: "Name, email, password, and role are required." });
+    }
+
+    if (!["student", "company", "faculty", "admin"].includes(role)) {
+      return res.status(400).json({ message: "Invalid role specified." });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase(), collegeId });
+    if (existingUser) {
+      return res.status(400).json({ message: "A user with this email already exists in your institution." });
+    }
+
+    // Hash password
+    const bcrypt = require("bcryptjs");
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const newUser = await User.create({
+      name,
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      role,
+      collegeId,
+      status: "approved", // Admins creating users bypasses the pending status
+    });
+
+    // Handle role-specific logic implicitly
+    if (role === "student") {
+      const StudentProfile = require("../models/StudentProfile");
+      await StudentProfile.create({
+        userId: newUser._id,
+        fullName: name,
+        email: email.toLowerCase()
+      });
+    } else if (role === "company") {
+      const CompanyProfile = require("../models/CompanyProfile");
+      await CompanyProfile.create({
+        userId: newUser._id,
+        companyName: name // Fallback to name as company name initially
+      });
+    }
+
+    // Don't send the password back
+    const userToReturn = newUser.toObject();
+    delete userToReturn.password;
+
+    res.status(201).json({ success: true, message: "User created successfully", user: userToReturn });
+  } catch (err) {
+    console.error("Create user error:", err);
+    res.status(500).json({ message: "Failed to create user", error: err.message });
+  }
+};
 
 exports.getAllUsers = async (req, res) => {
   try {

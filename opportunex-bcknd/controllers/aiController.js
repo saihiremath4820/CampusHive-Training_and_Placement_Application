@@ -1,4 +1,6 @@
 const StudentProfile = require("../models/StudentProfile");
+const Opportunity = require("../models/Opportunity");
+const Project = require("../models/Project");
 const axios = require("axios");
 const path = require("path");
 const fs = require("fs");
@@ -88,3 +90,145 @@ exports.getSkillMatch = async (req, res) => {
 
 // Keep for backward compatibility if needed, or remove later
 exports.getFitScore = exports.getSkillMatch;
+
+/* ---------------- COMPANY ATS SCORE ---------------- */
+exports.companyATSScore = async (req, res) => {
+  try {
+    const { studentId, opportunityId } = req.body;
+
+    if (!studentId || !opportunityId) {
+      return res.status(400).json({ message: "studentId and opportunityId are required" });
+    }
+
+    // Fetch student profile
+    const studentProfile = await StudentProfile.findOne({ userId: studentId })
+      .select("resumePath skills branch year cgpa");
+
+    if (!studentProfile?.resumePath) {
+      return res.status(404).json({ message: "Student has not uploaded a resume yet" });
+    }
+
+    // Fetch opportunity
+    const opportunity = await Opportunity.findById(opportunityId);
+    if (!opportunity) {
+      return res.status(404).json({ message: "Opportunity not found" });
+    }
+
+    // Build resume path — support both Cloudinary URLs and local files
+    let resumePath = studentProfile.resumePath;
+    if (!resumePath.startsWith("http://") && !resumePath.startsWith("https://")) {
+      resumePath = path.resolve(resumePath);
+      if (!fs.existsSync(resumePath)) {
+        return res.status(404).json({ message: "Resume file not found on server" });
+      }
+    }
+
+    console.log(`🤖 Company ATS: student=${studentId}, opp=${opportunityId}`);
+
+    // Call AI engine
+    const aiResponse = await axios.post(
+      `${process.env.AI_ENGINE_URL}/company-ats-score`,
+      {
+        resumePath,
+        studentProfile: {
+          skills: studentProfile.skills || [],
+          branch: studentProfile.branch || "",
+          year: studentProfile.year || "",
+          cgpa: studentProfile.cgpa || 0
+        },
+        opportunity: {
+          title: opportunity.title,
+          description: opportunity.description || "",
+          requiredSkills: opportunity.requiredSkills || [],
+          requiredCGPA: opportunity.requiredCGPA || 0,
+          requiredDegree: opportunity.requiredDegree || "",
+          type: opportunity.type || ""
+        }
+      },
+      { timeout: 60000 }
+    );
+
+    res.json(aiResponse.data);
+  } catch (err) {
+    const isConnRefused = err.code === "ECONNREFUSED";
+    const isTimeout = err.code === "ECONNABORTED" || err.message?.includes("timeout");
+    console.error("Company ATS error:", err.message);
+    res.status(500).json({
+      message: isConnRefused
+        ? "AI engine is offline. Please ensure the AI engine is running."
+        : isTimeout
+          ? "AI analysis timed out. Please retry."
+          : `ATS analysis failed: ${err.response?.data?.error || err.message}`
+    });
+  }
+};
+
+/* ---------------- FACULTY ATS SCORE ---------------- */
+exports.facultyATSScore = async (req, res) => {
+  try {
+    const { studentId, projectId } = req.body;
+
+    if (!studentId || !projectId) {
+      return res.status(400).json({ message: "studentId and projectId are required" });
+    }
+
+    // Fetch student profile
+    const studentProfile = await StudentProfile.findOne({ userId: studentId })
+      .select("resumePath skills branch year cgpa");
+
+    if (!studentProfile?.resumePath) {
+      return res.status(404).json({ message: "Student has not uploaded a resume yet" });
+    }
+
+    // Fetch project
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Build resume path — support both Cloudinary URLs and local files
+    let resumePath = studentProfile.resumePath;
+    if (!resumePath.startsWith("http://") && !resumePath.startsWith("https://")) {
+      resumePath = path.resolve(resumePath);
+      if (!fs.existsSync(resumePath)) {
+        return res.status(404).json({ message: "Resume file not found on server" });
+      }
+    }
+
+    console.log(`🤖 Faculty ATS: student=${studentId}, project=${projectId}`);
+
+    // Call AI engine
+    const aiResponse = await axios.post(
+      `${process.env.AI_ENGINE_URL}/faculty-ats-score`,
+      {
+        resumePath,
+        studentProfile: {
+          skills: studentProfile.skills || [],
+          branch: studentProfile.branch || "",
+          year: studentProfile.year || "",
+          cgpa: studentProfile.cgpa || 0
+        },
+        project: {
+          title: project.title,
+          description: project.description || "",
+          domain: project.domain || ""
+        }
+      },
+      { timeout: 60000 }
+    );
+
+    res.json(aiResponse.data);
+  } catch (err) {
+    const isConnRefused = err.code === "ECONNREFUSED";
+    const isTimeout = err.code === "ECONNABORTED" || err.message?.includes("timeout");
+    console.error("Faculty ATS error:", err.message);
+    res.status(500).json({
+      message: isConnRefused
+        ? "AI engine is offline. Please ensure the AI engine is running."
+        : isTimeout
+          ? "AI analysis timed out. Please retry."
+          : `ATS analysis failed: ${err.response?.data?.error || err.message}`
+    });
+  }
+};
+

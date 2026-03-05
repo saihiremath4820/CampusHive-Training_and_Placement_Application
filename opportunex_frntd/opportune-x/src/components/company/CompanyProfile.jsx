@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Building2, Globe, MapPin, FileText, Briefcase, Save, Loader2, ShieldCheck, Mail, Phone, ExternalLink, Settings, AtSign } from "lucide-react";
-import toast from "react-hot-toast";
+import toast from '../common/toastManager';
 import axios from "axios";
 
 export default function CompanyProfile({ profile, onUpdate }) {

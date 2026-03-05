@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Lock, ShieldCheck, ArrowRight, Eye, EyeOff } from "lucide-react";
 import AuthLayout from "./shared/AuthLayout";
-import { toast } from "react-hot-toast";
+import toast from './common/toastManager';
 
 const ResetPassword = () => {
   const { token } = useParams();

@@ -45,3 +45,10 @@ export const getApplicants = (opportunityId) =>
 // Update applicant status (shortlist / select / reject)
 export const updateApplicantStatus = (applicationId, newStatus) =>
   api.put("/application/status", { applicationId, newStatus });
+
+// New real-time dashboard endpoints
+export const getApplicationStats = () => api.get("/company/stats");
+export const getDeadlineAlerts = () => api.get("/company/deadline-alerts");
+export const getRecentActivity = () => api.get("/company/recent-activity");
+export const getDashboardStats = () => api.get("/company/dashboard-stats");
+export const getPublicCompanyProfile = (id) => api.get(`/company/public/${id}`);

@@ -84,7 +84,7 @@ export default function AdminSidebar({ active, setActive, darkMode }) {
     <aside className="sidebar">
       {/* ── Brand ────────────────────────────────────── */}
       <div className="sidebar-brand">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, marginRight: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0 }}>
           <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g fill="var(--accent)">
               <path d="M 30 16 L 42.12 23 L 42.12 37 L 30 44 L 17.88 37 L 17.88 23 Z" />
@@ -96,7 +96,7 @@ export default function AdminSidebar({ active, setActive, darkMode }) {
             </g>
           </svg>
         </div>
-        <div>
+        <div className="sidebar-user-info">
           <div className="sidebar-brand-name">Campus <span style={{ color: "var(--accent)" }}>Hive</span></div>
           <div className="sidebar-brand-sub" style={{ marginTop: "2px", letterSpacing: "1px" }}>T&amp;P PORTAL</div>
         </div>
@@ -155,7 +155,7 @@ export default function AdminSidebar({ active, setActive, darkMode }) {
       {/* ── User Chip ─────────────────────────────── */}
       <div className="sidebar-user">
         <div className="sidebar-user-avatar">{initial}</div>
-        <div>
+        <div className="sidebar-user-info">
           <div className="sidebar-user-name">Administrator</div>
           <div className="sidebar-user-role">T&amp;P Control Panel</div>
         </div>

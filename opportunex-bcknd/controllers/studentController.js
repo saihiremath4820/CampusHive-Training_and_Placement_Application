@@ -11,6 +11,26 @@ exports.createOrUpdateProfile = async (req, res) => {
     // Ensure userId is correctly set
     const updateData = { ...req.body, userId: req.user.id };
 
+    const { tenth, twelfth } = req.body;
+
+    // Add validation before saving
+    if (tenth !== undefined) {
+      if (isNaN(tenth) || tenth < 0 || tenth > 100) {
+        return res.status(400).json({
+          message: "10th percentage must be between 0 and 100"
+        });
+      }
+      updateData.tenth = parseFloat(tenth);
+    }
+    if (twelfth !== undefined) {
+      if (isNaN(twelfth) || twelfth < 0 || twelfth > 100) {
+        return res.status(400).json({
+          message: "12th percentage must be between 0 and 100"
+        });
+      }
+      updateData.twelfth = parseFloat(twelfth);
+    }
+
     const profile = await StudentProfile.findOneAndUpdate(
       { userId: req.user.id },
       updateData,
@@ -57,7 +77,9 @@ exports.getProfile = async (req, res) => {
         linkedin: "",
         github: "",
         projects: "",
-        resumePath: ""
+        resumePath: "",
+        tenth: null,
+        twelfth: null
       });
     }
 

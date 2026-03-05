@@ -18,7 +18,7 @@ exports.createOpportunity = async (req, res) => {
       });
     }
 
-    const { title, description, requiredSkills, requiredDegree, requiredCGPA, deadline, type, duration, eligibility } = req.body;
+    const { title, description, requiredSkills, requiredDegree, requiredCGPA, minTenth, minTwelfth, deadline, type, duration, eligibility } = req.body;
 
     if (!title || !type || !requiredDegree || !requiredCGPA || !deadline || !requiredSkills) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
@@ -30,6 +30,8 @@ exports.createOpportunity = async (req, res) => {
       requiredSkills,
       requiredDegree,
       requiredCGPA,
+      minTenth: minTenth || 0,
+      minTwelfth: minTwelfth || 0,
       deadline,
       type,
       duration,
@@ -103,7 +105,7 @@ exports.updateOpportunity = async (req, res) => {
       return res.status(404).json({ success: false, message: "Opportunity not found or unauthorized" });
     }
 
-    const allowedFields = ["title", "description", "requiredSkills", "requiredDegree", "requiredCGPA", "deadline", "type", "duration", "eligibility", "dataRequirements"];
+    const allowedFields = ["title", "description", "requiredSkills", "requiredDegree", "requiredCGPA", "minTenth", "minTwelfth", "deadline", "type", "duration", "eligibility", "dataRequirements"];
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) opportunity[field] = req.body[field];
     });
@@ -242,23 +244,71 @@ exports.getStudentOpportunities = async (req, res) => {
     }
 
     // 🔐 Students only see APPROVED + ACTIVE drives
-    const opportunities = await Opportunity.find({
-      collegeId,
+    const opportunitiesRaw = await Opportunity.find({
+      collegeId: collegeId.toString(),
       status: "Active",
       approvalStatus: "approved",
       isDeleted: false,
       type: { $in: ["Internship", "Full-Time", "Project", "Contract"] }
-    }).populate("createdBy", "name").lean();
+    }).populate("createdBy", "name email").lean();
+
+    // 1. Extract unified creator IDs
+    const createdByIds = [...new Set(opportunitiesRaw.map(o => o.createdBy?._id?.toString()).filter(Boolean))];
+
+    // 2. Query all corresponding Company Profiles
+    const CompanyProfile = require("../models/CompanyProfile");
+    const companyProfiles = await CompanyProfile.find({
+      userId: { $in: createdByIds }
+    }).select("userId companyName industry location website about").lean();
+
+    // 3. Build lookup map
+    const profileMap = {};
+    companyProfiles.forEach(p => {
+      profileMap[p.userId.toString()] = p;
+    });
+
+    // 4. Enrich opportunities with comprehensive profile data
+    const opportunities = opportunitiesRaw.map(opp => {
+      const profile = profileMap[opp.createdBy?._id?.toString()];
+      return {
+        ...opp,
+        companyName: profile?.companyName || opp.createdBy?.name || "Corporate Partner",
+        companyIndustry: profile?.industry || "",
+        companyLocation: profile?.location || opp.location || "",
+        companyWebsite: profile?.website || "",
+        companyAbout: profile?.about || "",
+        companyProfileId: opp.createdBy?._id || null,
+        dataRequirements: opp.dataRequirements || []
+      };
+    });
 
     const studentCGPA = parseFloat(profile.cgpa) || 0;
     const studentDegree = (profile.degree || "").toLowerCase().replace(/[^a-z]/g, "");
 
     const eligibleOpps = opportunities.filter(opp => {
+      // Check 10th criteria - do not exclude if marks not entered
+      if (opp.minTenth && opp.minTenth > 0) {
+        if (profile.tenth !== null && profile.tenth !== undefined && profile.tenth < opp.minTenth) {
+          return false;
+        }
+      }
+      // Check 12th criteria
+      if (opp.minTwelfth && opp.minTwelfth > 0) {
+        if (profile.twelfth !== null && profile.twelfth !== undefined && profile.twelfth < opp.minTwelfth) {
+          return false;
+        }
+      }
+
       const reqCGPA = opp.requiredCGPA || 0;
+      if (reqCGPA > 0) {
+        if (profile.cgpa !== null && profile.cgpa !== undefined && studentCGPA < reqCGPA) {
+          return false;
+        }
+      }
+
       const reqDegree = (opp.requiredDegree || "").toLowerCase().replace(/[^a-z]/g, "");
-      const cgpaCheck = studentCGPA >= reqCGPA;
       const degreeCheck = !reqDegree || reqDegree === "any" || reqDegree.includes(studentDegree) || studentDegree.includes(reqDegree);
-      return cgpaCheck && degreeCheck;
+      return degreeCheck;
     });
 
     const studentSkills = profile.skills || [];

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { UserCircle, Save, Loader2, Mail, Briefcase, Building } from "lucide-react";
-import toast from "react-hot-toast";
+import toast from '../common/toastManager';
 
 export default function FacultyProfile({ profile, onProfileUpdate }) {
   const [formData, setFormData] = useState({

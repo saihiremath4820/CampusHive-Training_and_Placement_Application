@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import toast from 'react-hot-toast';
+import toast from '../common/toastManager';
 import { Target, Plus, Edit2, Trash2, X } from 'lucide-react';
 import {
   getPlacementObjectives,
