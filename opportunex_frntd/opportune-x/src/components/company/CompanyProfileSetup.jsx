@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Building2, Globe, MapPin, Briefcase, Save, Loader2, Mail, Phone, User, Image as ImageIcon } from "lucide-react";
-import toast from "react-hot-toast";
+import toast from '../common/toastManager';
 import axios from "axios";
 
 export default function CompanyProfileSetup({ profile, onComplete, onLogout }) {

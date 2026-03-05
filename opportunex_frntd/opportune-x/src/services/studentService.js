@@ -23,6 +23,6 @@ export const getStudentApplications = () => {
 };
 
 // Apply to an opportunity
-export const applyToOpportunity = (opportunityId) => {
-  return api.post("/application", { opportunityId });
+export const applyToOpportunity = (payload) => {
+  return api.post("/application", payload);
 };

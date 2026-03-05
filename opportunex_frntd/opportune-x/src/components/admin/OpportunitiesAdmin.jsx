@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Briefcase, CheckCircle, Ban, Search, Building2, Calendar, Users } from "lucide-react";
-import toast from "react-hot-toast";
+import toast from '../common/toastManager';
 import { getAllOpportunities, disableOpportunity, approveDrive, rejectDrive } from "../../services/adminService";
 import LoadingSpinner from "./shared/LoadingSpinner";
 

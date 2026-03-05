@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { User, Mail, Lock, Building2, UserCircle, ShieldCheck, ArrowRight, Eye, EyeOff, CheckCircle2, Circle, Rocket } from "lucide-react";
 import AuthLayout from "./shared/AuthLayout";
 import { registerUser, getPublicSettings } from "../services/authService";
-import { toast } from "react-hot-toast";
+import toast from './common/toastManager';
 
 const Register = ({ onSwitch, onRegisterSuccess }) => {
     const [formData, setFormData] = useState({

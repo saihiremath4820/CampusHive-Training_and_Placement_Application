@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { MessageSquare, Star, CheckCircle2, Loader2 } from "lucide-react";
-import toast from "react-hot-toast";
+import toast from '../common/toastManager';
 
 export default function FeedbackCompletion() {
   const [teams, setTeams] = useState([]);

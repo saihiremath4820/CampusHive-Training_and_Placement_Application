@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Search, ClipboardList, Building2, User, Calendar, Filter } from "lucide-react";
-import toast from "react-hot-toast";
+import toast from '../common/toastManager';
 import { getAllApplications } from "../../services/adminService";
 import LoadingSpinner from "./shared/LoadingSpinner";
 

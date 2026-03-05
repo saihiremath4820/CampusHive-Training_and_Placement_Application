@@ -7,7 +7,7 @@ const { createNotification } = require("./notificationController");
 // Apply to an opportunity
 exports.applyToOpportunity = async (req, res) => {
   try {
-    const { opportunityId } = req.body;
+    const { opportunityId, githubUrl, linkedinUrl, hasBacklog, statementOfPurpose } = req.body;
     const studentId = req.user.id;
 
     const opportunity = await Opportunity.findById(opportunityId);
@@ -21,6 +21,52 @@ exports.applyToOpportunity = async (req, res) => {
     if (opportunity.status !== "Active") {
       return res.status(400).json({
         message: "Opportunity is closed",
+      });
+    }
+
+    const StudentProfile = require("../models/StudentProfile");
+    const student = await StudentProfile.findOne({ userId: req.user.id });
+
+    const ineligibilityReasons = [];
+
+    if (opportunity.minTenth > 0 && (!student.tenth || student.tenth < opportunity.minTenth)) {
+      ineligibilityReasons.push(`Minimum 10th percentage required: ${opportunity.minTenth}%`);
+    }
+    if (opportunity.minTwelfth > 0 && (!student.twelfth || student.twelfth < opportunity.minTwelfth)) {
+      ineligibilityReasons.push(`Minimum 12th percentage required: ${opportunity.minTwelfth}%`);
+    }
+    if (opportunity.requiredCGPA > 0 && (!student.cgpa || student.cgpa < opportunity.requiredCGPA)) {
+      ineligibilityReasons.push(`Minimum CGPA required: ${opportunity.requiredCGPA}`);
+    }
+
+    if (ineligibilityReasons.length > 0) {
+      return res.status(403).json({
+        message: "You do not meet the eligibility criteria for this opportunity",
+        reasons: ineligibilityReasons
+      });
+    }
+
+    // Check what data is required
+    const required = opportunity.dataRequirements || [];
+    const missingFields = [];
+
+    if (required.includes('GitHub/Portfolio') && !githubUrl) {
+      missingFields.push('GitHub/Portfolio URL');
+    }
+    if (required.includes('LinkedIn Profile') && !linkedinUrl) {
+      missingFields.push('LinkedIn Profile URL');
+    }
+    if (required.includes('Statement of Purpose') && !statementOfPurpose) {
+      missingFields.push('Statement of Purpose');
+    }
+    if (required.includes('Backlog History') && hasBacklog === undefined) {
+      missingFields.push('Backlog status');
+    }
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        message: 'Please provide all required information: ' + missingFields.join(', '),
+        missingFields
       });
     }
 
@@ -38,6 +84,12 @@ exports.applyToOpportunity = async (req, res) => {
     const application = new Application({
       opportunityId,
       studentId,
+      submittedData: {
+        githubUrl: githubUrl || null,
+        linkedinUrl: linkedinUrl || null,
+        hasBacklog: hasBacklog ?? null,
+        statementOfPurpose: statementOfPurpose || null
+      }
     });
 
     await application.save();
@@ -168,7 +220,7 @@ exports.getApplicationsByOpportunity = async (req, res) => {
     const enrichedApplications = await Promise.all(
       applications.map(async (app) => {
         if (!app.studentId?._id) return app;
-        const profile = await StudentProfile.findOne({ userId: app.studentId._id }).select("resumePath skills branch year");
+        const profile = await StudentProfile.findOne({ userId: app.studentId._id }).select("resumePath skills branch year cgpa");
         return {
           ...app,
           studentProfile: profile || null

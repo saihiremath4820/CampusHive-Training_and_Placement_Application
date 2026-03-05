@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import toast from 'react-hot-toast';
+import toast from '../common/toastManager';
 import { Edit2, Trash2, Upload, Eye, FileText, Calendar, X, Check } from 'lucide-react';
 import {
   getPlacementReports,

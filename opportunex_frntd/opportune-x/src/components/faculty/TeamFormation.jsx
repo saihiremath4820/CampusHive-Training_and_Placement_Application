@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Users, CheckCircle, Plus, Loader2, Sparkles, FolderIcon, UserPlus, Info } from "lucide-react";
-import toast from "react-hot-toast";
+import toast from '../common/toastManager';
 
 export default function TeamFormation() {
   const [teams, setTeams] = useState([]);

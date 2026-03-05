@@ -8,7 +8,7 @@ import ForgotPassword from './components/ForgotPassword.jsx';
 import ResetPassword from './components/ResetPassword.jsx';
 
 import { SocketProvider } from './context/SocketContext';
-import Toast from './components/admin/shared/Toast';
+import ToastContainer from './components/common/ToastContainer';
 
 window.onerror = function (msg, _url, lineNo, columnNo, _error) {
     const div = document.createElement('div');
@@ -31,7 +31,7 @@ if (root) {
         <StrictMode>
             <SocketProvider>
                 <BrowserRouter>
-                    <Toast />
+                    <ToastContainer />
                     <Routes>
                         <Route path="/" element={<App />} />
                         <Route path="/forgot-password" element={<ForgotPassword onSwitch={() => { }} />} />

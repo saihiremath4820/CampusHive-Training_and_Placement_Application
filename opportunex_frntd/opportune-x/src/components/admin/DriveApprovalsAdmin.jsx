@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ShieldCheck, Clock, X, Building2, Calendar, AlertTriangle } from "lucide-react";
-import toast from "react-hot-toast";
+import toast from '../common/toastManager';
 import { getPendingDrives, approveDrive, rejectDrive } from "../../services/adminService";
 import LoadingSpinner from "./shared/LoadingSpinner";
 

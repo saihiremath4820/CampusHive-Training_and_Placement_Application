@@ -10,6 +10,19 @@ const StudentProfileSchema = new mongoose.Schema({
   year: String,
   cgpa: String, // String to handle empty inputs gracefully
   percentage: String,
+  tenth: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: null
+  },
+  twelfth: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: null
+  },
+
   skills: [String],
   github: String,
   linkedin: String,

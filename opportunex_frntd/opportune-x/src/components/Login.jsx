@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Building2, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import AuthLayout from "./shared/AuthLayout";
 import { loginUser } from "../services/authService";
-import { toast } from "react-hot-toast";
+import toast from './common/toastManager';
 
 const Login = ({ onLoginSuccess, onSwitch }) => {
     const [email, setEmail] = useState("");

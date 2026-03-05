@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import toast from 'react-hot-toast';
+import toast from '../common/toastManager';
 import { Save, X, Info } from 'lucide-react';
 import {
   getPlacementOverview,

@@ -79,7 +79,7 @@ export default function FacultyDashboard({ onLogout }) {
       {sidebarOpen && (
         <aside className="sidebar">
           <div className="sidebar-brand">
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, marginRight: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0 }}>
               <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <g fill="var(--accent)">
                   {/* Top Left */}
@@ -94,13 +94,13 @@ export default function FacultyDashboard({ onLogout }) {
                 </g>
               </svg>
             </div>
-            <div>
+            <div className="sidebar-user-info">
               <div className="sidebar-brand-name">Campus <span style={{ color: "var(--accent)" }}>Hive</span></div>
               <div className="sidebar-brand-sub" style={{ marginTop: "2px", letterSpacing: "1px" }}>T&amp;P PORTAL</div>
             </div>
           </div>
 
-          <nav className="sidebar-nav" style={{ flex: 1, overflowY: "auto" }}>
+          <nav className="sidebar-nav">
             <div className="sidebar-group">
               {menuItems.map((item) => {
                 const isActive = activeTab === item.id;
@@ -133,7 +133,7 @@ export default function FacultyDashboard({ onLogout }) {
       )}
 
       {/* ── MAIN AREA ────────────────────────────────────────── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", marginLeft: sidebarOpen ? 230 : 0, transition: "margin-left 0.25s" }}>
+      <div className={sidebarOpen ? "main-content" : "main-content-full"}>
 
         {/* Header */}
         <header style={{

@@ -4,7 +4,7 @@ import {
   User, Mail, Phone, GraduationCap, BookOpen, Link2,
   Terminal, Heart, Save, Edit3, FileText, Github, Linkedin, Clock, X
 } from "lucide-react";
-import toast from 'react-hot-toast';
+import toast from '../common/toastManager';
 
 const DEGREE_OPTIONS = ["Diploma", "B.Tech", "M.Tech", "B.Sc", "B.Com", "BA", "Other"];
 const MAX_RESUME_SIZE = 2 * 1024 * 1024;
@@ -20,7 +20,7 @@ export default function Profile() {
 
   const [formData, setFormData] = useState({
     fullName: "", email: "", mobile: "", degree: "", branch: "",
-    year: "", cgpa: "", percentage: "", skills: "", github: "",
+    year: "", cgpa: "", percentage: "", tenth: "", twelfth: "", skills: "", github: "",
     linkedin: "", projects: "", interests: "",
   });
 
@@ -51,6 +51,8 @@ export default function Profile() {
         year: profile.year || "",
         cgpa: profile.cgpa || "",
         percentage: profile.percentage || "",
+        tenth: profile.tenth || "",
+        twelfth: profile.twelfth || "",
         skills: Array.isArray(profile.skills) ? profile.skills.join(", ") : profile.skills || "",
         github: profile.github || "",
         linkedin: profile.linkedin || "",
@@ -182,6 +184,8 @@ export default function Profile() {
             <DetailRow label="Branch" value={profile.branch} />
             <DetailRow label="Graduation Year" value={profile.year} />
             <DetailRow label={isEngineering ? "CGPA" : "Percentage"} value={isEngineering ? profile.cgpa : profile.percentage} />
+            <DetailRow label="10th Percentage" value={profile.tenth ? `${profile.tenth}%` : "Not provided"} />
+            <DetailRow label="12th Percentage" value={profile.twelfth ? `${profile.twelfth}%` : "Not provided"} />
           </SectionCard>
 
           <SectionCard title="Contact Information" icon={Mail}>
@@ -302,6 +306,25 @@ export default function Profile() {
                 onChange={e => setFormData({ ...formData, [isEngineering ? "cgpa" : "percentage"]: e.target.value })} />
             </InputWrapper>
           </div>
+          <div className="grid-2">
+            <InputWrapper label="10th Percentage" icon={Terminal}>
+              <div style={{ position: "relative" }}>
+                <input type="number" min="0" max="100" step="0.01" placeholder="e.g. 85.5" value={formData.tenth || ''} style={inputStyle} onChange={e => setFormData({ ...formData, tenth: e.target.value })} />
+                <span style={{ position: "absolute", right: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text)", opacity: 0.5, fontWeight: 700 }}>%</span>
+              </div>
+            </InputWrapper>
+            <InputWrapper label="12th Percentage" icon={Terminal}>
+              <div style={{ position: "relative" }}>
+                <input type="number" min="0" max="100" step="0.01" placeholder="e.g. 78.2" value={formData.twelfth || ''} style={inputStyle} onChange={e => setFormData({ ...formData, twelfth: e.target.value })} />
+                <span style={{ position: "absolute", right: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text)", opacity: 0.5, fontWeight: 700 }}>%</span>
+              </div>
+            </InputWrapper>
+          </div>
+          {(!formData.tenth || !formData.twelfth) && (
+            <div style={{ padding: "0.75rem", background: "rgba(224,155,61,0.08)", border: "1px solid rgba(224,155,61,0.2)", borderRadius: "0.75rem", fontSize: "0.75rem", color: "var(--yellow)", display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 600 }}>
+              ⚠️ Complete your academic information to see all eligible opportunities
+            </div>
+          )}
         </FormSection>
 
         {/* Professional */}

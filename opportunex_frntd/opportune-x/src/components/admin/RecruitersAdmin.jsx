@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import toast from 'react-hot-toast';
+import toast from '../common/toastManager';
 import { Edit2, Trash2, Plus, X, Briefcase, IndianRupee, Users } from 'lucide-react';
 import {
   getRecruiters,

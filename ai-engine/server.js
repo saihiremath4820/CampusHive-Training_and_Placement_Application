@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
-import { analyzeResume } from "./engine.js";
+import { analyzeResume, analyzeResumeForJob, analyzeResumeForProject } from "./engine.js";
 import { runAIEngine } from "./engine.js";
 
 import dotenv from "dotenv";
@@ -131,6 +131,40 @@ app.post("/match-skills", async (req, res) => {
   } catch (err) {
     console.error("🔥 MATCH ERROR:", err);
     res.status(500).json({ error: "Matching failed" });
+  }
+});
+
+/* ---------------- COMPANY ATS SCORE (Resume vs Job) ---------------- */
+app.post("/company-ats-score", async (req, res) => {
+  try {
+    const { resumePath, studentProfile, opportunity } = req.body;
+    if (!resumePath) return res.status(400).json({ error: "Missing resumePath" });
+    if (!opportunity) return res.status(400).json({ error: "Missing opportunity data" });
+
+    console.log("🤖 Company ATS request received");
+    const result = await analyzeResumeForJob(resumePath, studentProfile || {}, opportunity);
+    console.log("🧠 Company ATS result: score =", result.overallScore);
+    res.json(result);
+  } catch (err) {
+    console.error("🔥 Company ATS ERROR:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ---------------- FACULTY ATS SCORE (Resume vs Project) ---------------- */
+app.post("/faculty-ats-score", async (req, res) => {
+  try {
+    const { resumePath, studentProfile, project } = req.body;
+    if (!resumePath) return res.status(400).json({ error: "Missing resumePath" });
+    if (!project) return res.status(400).json({ error: "Missing project data" });
+
+    console.log("🤖 Faculty ATS request received");
+    const result = await analyzeResumeForProject(resumePath, studentProfile || {}, project);
+    console.log("🧠 Faculty ATS result: fitScore =", result.fitScore);
+    res.json(result);
+  } catch (err) {
+    console.error("🔥 Faculty ATS ERROR:", err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 

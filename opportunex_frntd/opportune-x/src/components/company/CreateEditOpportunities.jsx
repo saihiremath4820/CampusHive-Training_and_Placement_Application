@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import {
   Briefcase, MapPin, Type, List, PlusCircle, X, Loader2, ArrowRight, Zap, Target, Sparkles, Calendar, GraduationCap, CheckCircle2, FileText, Edit3
 } from "lucide-react";
-import toast from "react-hot-toast";
+import toast from '../common/toastManager';
 import { createOpportunity, updateOpportunity } from "../../services/companyApi";
 
 const JOB_TYPES = ["Full-Time", "Internship", "Project", "Contract"];
@@ -17,6 +17,8 @@ const EMPTY_FORM = {
   requiredSkills: [""],
   requiredDegree: "BE / B.Tech",
   requiredCGPA: 6.0,
+  minTenth: 0,
+  minTwelfth: 0,
   deadline: "",
   dataRequirements: ["Resume", "CGPA", "Contact Number"]
 };
@@ -41,6 +43,8 @@ export default function CreateEditOpportunities({ onSuccess, onOpportunityCreate
         requiredSkills: editOpportunity.requiredSkills?.length ? editOpportunity.requiredSkills : [""],
         requiredDegree: editOpportunity.requiredDegree || "BE / B.Tech",
         requiredCGPA: editOpportunity.requiredCGPA || 6.0,
+        minTenth: editOpportunity.minTenth || 0,
+        minTwelfth: editOpportunity.minTwelfth || 0,
         deadline,
         dataRequirements: editOpportunity.dataRequirements || ["Resume", "CGPA", "Contact Number"],
       });
@@ -148,10 +152,21 @@ export default function CreateEditOpportunities({ onSuccess, onOpportunityCreate
               <InputField label="Location" icon={MapPin} value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="e.g. Mumbai / Remote" />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 24 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 24 }}>
               <InputField label="Required Degree" icon={GraduationCap} isSelect options={DEGREE_TYPES} value={formData.requiredDegree} onChange={e => setFormData({ ...formData, requiredDegree: e.target.value })} placeholder="Select degree..." />
-              <InputField label="Min CGPA" icon={Zap} type="number" value={formData.requiredCGPA} onChange={e => setFormData({ ...formData, requiredCGPA: parseFloat(e.target.value) })} placeholder="e.g. 7.5" />
               <InputField label="Application Deadline" icon={Calendar} type="date" value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })} placeholder="Select date" />
+            </div>
+
+            <div style={{ padding: "16px 20px", background: "var(--bg)", borderRadius: 12, border: "1px solid var(--border)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <Zap size={16} color="var(--accent)" />
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Eligibility Criteria</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
+                <InputField label="Min CGPA" icon={Zap} type="number" value={formData.requiredCGPA} onChange={e => setFormData({ ...formData, requiredCGPA: e.target.value })} placeholder="e.g. 7.5" />
+                <InputField label="Min 10th %" icon={Zap} type="number" value={formData.minTenth} onChange={e => setFormData({ ...formData, minTenth: e.target.value })} placeholder="0 = no req" />
+                <InputField label="Min 12th %" icon={Zap} type="number" value={formData.minTwelfth} onChange={e => setFormData({ ...formData, minTwelfth: e.target.value })} placeholder="0 = no req" />
+              </div>
             </div>
 
             <div className="form-group" style={{ marginTop: 8 }}>

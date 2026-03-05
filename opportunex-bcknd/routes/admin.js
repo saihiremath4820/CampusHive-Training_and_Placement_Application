@@ -33,6 +33,7 @@ router.get("/pending-counts", adminController.getPendingCounts);
 router.get("/applications", adminController.getAllApplications);
 
 /* ================= USERS ================= */
+router.post("/users", adminController.createUser);
 router.get("/users", adminController.getAllUsers);
 router.put("/users/:id", adminController.updateUser);
 router.delete("/users/:id", adminController.deleteUser);

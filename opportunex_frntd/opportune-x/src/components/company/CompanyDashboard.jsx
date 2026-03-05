@@ -1,6 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
-import { getOpportunities } from "../../services/companyApi";
+import {
+  getOpportunities,
+  getDashboardStats,
+  getDeadlineAlerts,
+} from "../../services/companyApi";
 import Opportunities from "./Opportunities";
 import CreateEditOpportunities from "./CreateEditOpportunities";
 import CompanyProfile from "./CompanyProfile";
@@ -12,21 +16,14 @@ import NotificationIcon from "../shared/NotificationIcon";
 import { useSocket } from "../../context/SocketContext";
 
 import {
-  GraduationCap,
   Briefcase,
   PlusCircle,
-  UserCircle,
   LogOut,
   Menu,
-  Users,
-  Globe,
-  Clock,
   GitMerge,
-  Sparkles,
   LayoutDashboard,
   ShieldCheck,
-  Building2,
-  Archive
+  Building2
 } from "lucide-react";
 
 const menuItems = [
@@ -36,39 +33,101 @@ const menuItems = [
   { id: "profile", label: "Organization HUB", icon: Building2, sub: "Company visibility" },
 ];
 
+const StatCard = ({ label, value, hint, accentColor }) => {
+  return (
+    <div className="ch-stat-card-h"
+      style={{ borderTop: `3px solid ${accentColor}` }}>
+      <div className="ch-stat-card-h__value">{value}</div>
+      <div className="ch-stat-card-h__label">{label}</div>
+      <div className="ch-stat-card-h__hint">{hint}</div>
+    </div>
+  );
+};
+
+const STAT_CARDS_DATA = (dashboardStats) => [
+  {
+    label: 'Active Jobs',
+    value: dashboardStats.activeJobs ?? 0,
+    hint: 'Live and approved',
+    accentColor: '#2563eb'
+  },
+  {
+    label: 'Pending Approval',
+    value: dashboardStats.pendingApproval ?? 0,
+    hint: 'Awaiting admin review',
+    accentColor: '#d97706'
+  },
+  {
+    label: 'Total Applicants',
+    value: dashboardStats.totalApplicants ?? 0,
+    hint: 'Across all drives',
+    accentColor: '#7c3aed'
+  },
+  {
+    label: 'Shortlisted',
+    value: dashboardStats.shortlisted ?? 0,
+    hint: 'In pipeline',
+    accentColor: '#0891b2'
+  },
+  {
+    label: 'Selected',
+    value: dashboardStats.selected ?? 0,
+    hint: 'Positions filled',
+    accentColor: '#16a34a'
+  },
+  {
+    label: 'Closed Drives',
+    value: dashboardStats.closedJobs ?? 0,
+    hint: 'Completed hiring',
+    accentColor: '#4b5563'
+  }
+];
+
+const STAT_CARDS = STAT_CARDS_DATA;
+
+
 export default function CompanyDashboard({ onLogout }) {
   const [active, setActive] = useState("opportunities");
   const [view, setView] = useState("opportunities");
   const [selectedOppId, setSelectedOppId] = useState(null);
+  const [selectedOpp, setSelectedOpp] = useState(null);
   const [editingOpp, setEditingOpp] = useState(null);
   const [opportunities, setOpportunities] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState({ name: "", email: "", phone: "" });
   const [profileData, setProfileData] = useState(null);
 
-  const fetchOpportunities = async () => {
+  // New state for 4 features
+  const [dashboardStats, setDashboardStats] = useState({});
+  const [alerts, setAlerts] = useState([]);
+  const [refreshTick, setRefreshTick] = useState(0); // increments to trigger analytics refresh
+
+  const { socket } = useSocket();
+  const intervalRef = useRef(null);
+
+  // ── Fetch functions ──────────────────────────────────────────
+  const fetchOpportunities = useCallback(async () => {
     try {
       const res = await getOpportunities();
       setOpportunities(res.data.data || res.data || []);
-    } catch (err) {
-      console.warn("Failed to fetch opportunities:", err);
-      setOpportunities([]);
-    }
-  };
+    } catch { setOpportunities([]); }
+  }, []);
 
-  const fetchAnalytics = async () => {
+  const fetchDashboardStats = useCallback(async () => {
     try {
-      const { getCompanyAnalytics } = await import("../../services/companyApi");
-      const res = await getCompanyAnalytics();
-      setAnalytics(res.data || null);
-    } catch (err) {
-      console.warn("Failed to fetch analytics:", err);
-      setAnalytics(null);
-    }
-  };
+      const res = await getDashboardStats();
+      setDashboardStats(res.data || {});
+    } catch { /* silently fail */ }
+  }, []);
 
-  const fetchProfile = async () => {
+  const fetchDeadlineAlerts = useCallback(async () => {
+    try {
+      const res = await getDeadlineAlerts();
+      setAlerts(res.data.alerts || []);
+    } catch { /* silently fail */ }
+  }, []);
+
+  const fetchProfile = useCallback(async () => {
     try {
       const token = sessionStorage.getItem("token");
       const res = await axios.get(`${import.meta.env.VITE_API_BASE}/company/profile`, {
@@ -81,28 +140,35 @@ export default function CompanyDashboard({ onLogout }) {
         phone: data.phone || data.contactNumber || "No Phone",
       });
       setProfileData(data);
-    } catch (err) {
-      console.error("Failed to fetch profile");
-    }
-  };
-
-  useEffect(() => {
-    fetchProfile();
-    fetchOpportunities();
-    fetchAnalytics();
+    } catch { /* silently fail */ }
   }, []);
 
-  const { socket } = useSocket();
+  const refreshAll = useCallback(() => {
+    fetchDashboardStats();
+    fetchDeadlineAlerts();
+    fetchOpportunities();
+    setRefreshTick(t => t + 1); // triggers analytics re-fetch
+  }, [fetchDashboardStats, fetchDeadlineAlerts, fetchOpportunities]);
 
+  // ── Initial load + 30s auto-refresh ─────────────────────────
+  useEffect(() => {
+    fetchProfile();
+    refreshAll();
+    intervalRef.current = setInterval(refreshAll, 30000);
+    return () => clearInterval(intervalRef.current);
+  }, [fetchProfile, refreshAll]);
+
+  // ── Socket.IO live refresh ────────────────────────────────────
   useEffect(() => {
     if (!socket) return;
-    const handleNewApplication = () => {
-      fetchOpportunities();
-      fetchAnalytics();
+    const handle = () => refreshAll();
+    socket.on("new_application", handle);
+    socket.on("application_status_update", handle);
+    return () => {
+      socket.off("new_application", handle);
+      socket.off("application_status_update", handle);
     };
-    socket.on('new_application', handleNewApplication);
-    return () => socket.off('new_application', handleNewApplication);
-  }, [socket]);
+  }, [socket, refreshAll]);
 
   const handleTabChange = (id) => {
     setActive(id);
@@ -110,33 +176,34 @@ export default function CompanyDashboard({ onLogout }) {
     if (window.innerWidth < 1024) setSidebarOpen(false);
   };
 
+  const dismissAlert = (i) => setAlerts(prev => prev.filter((_, idx) => idx !== i));
+
   if (profileData && profileData.profileCompleted === false) {
     return <CompanyProfileSetup profile={profileData} onComplete={fetchProfile} onLogout={onLogout} />;
   }
 
+  const stats = STAT_CARDS_DATA(dashboardStats);
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", background: "var(--bg)" }}>
 
-      {/* ── SIDEBAR ──────────────────────────────────────────── */}
+      {/* ── SIDEBAR ───────────────────────────────────── */}
       {sidebarOpen && (
         <aside className="sidebar">
           <div className="sidebar-brand">
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, marginRight: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0 }}>
               <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <g fill="var(--accent)">
-                  {/* Top Left */}
                   <path d="M 30 16 L 42.12 23 L 42.12 37 L 30 44 L 17.88 37 L 17.88 23 Z" />
                   <circle cx="30" cy="30" r="4.5" fill="white" />
-                  {/* Top Right */}
                   <path d="M 58 16 L 70.12 23 L 70.12 37 L 58 44 L 45.88 37 L 45.88 23 Z" />
                   <circle cx="58" cy="30" r="4.5" fill="white" />
-                  {/* Bottom Center */}
                   <path d="M 44 40 L 56.12 47 L 56.12 61 L 44 68 L 31.88 61 L 31.88 47 Z" />
                   <circle cx="44" cy="54" r="4.5" fill="white" />
                 </g>
               </svg>
             </div>
-            <div>
+            <div className="sidebar-user-info">
               <div className="sidebar-brand-name">Campus <span style={{ color: "var(--accent)" }}>Hive</span></div>
               <div className="sidebar-brand-sub" style={{ marginTop: "2px", letterSpacing: "1px" }}>T&amp;P PORTAL</div>
             </div>
@@ -144,7 +211,7 @@ export default function CompanyDashboard({ onLogout }) {
 
           <nav className="sidebar-nav">
             <div className="sidebar-group">
-              <div className="sidebar-group-label">Recruitment Suite</div>
+              <span className="sidebar-section-label">Recruitment Suite</span>
               {menuItems.map((item) => {
                 const isActive = active === item.id;
                 return (
@@ -154,10 +221,7 @@ export default function CompanyDashboard({ onLogout }) {
                     className={`sidebar-item${isActive ? " active" : ""}`}
                   >
                     <item.icon size={16} />
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 1 }}>
-                      <span>{item.label}</span>
-                      <span style={{ fontSize: 9, opacity: 0.5, fontWeight: 500 }}>{item.sub}</span>
-                    </div>
+                    <span>{item.label}</span>
                   </button>
                 );
               })}
@@ -166,9 +230,7 @@ export default function CompanyDashboard({ onLogout }) {
 
           <div className="sidebar-footer">
             <div className="sidebar-user">
-              <div className="sidebar-avatar">
-                {user.name.charAt(0) || "C"}
-              </div>
+              <div className="sidebar-avatar">{user.name.charAt(0) || "C"}</div>
               <div className="sidebar-user-info">
                 <div className="sidebar-user-name">{user.name}</div>
                 <div className="sidebar-user-role" style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -181,8 +243,8 @@ export default function CompanyDashboard({ onLogout }) {
         </aside>
       )}
 
-      {/* ── MAIN AREA ────────────────────────────────────────── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", marginLeft: sidebarOpen ? 230 : 0, transition: "margin-left 0.25s" }}>
+      {/* ── MAIN AREA ─────────────────────────────────── */}
+      <div className={sidebarOpen ? "main-content" : "main-content-full"}>
 
         {/* Header */}
         <header style={{
@@ -200,7 +262,7 @@ export default function CompanyDashboard({ onLogout }) {
               <Menu size={18} />
             </button>
             <span style={{ fontFamily: "'Fraunces', serif", fontSize: 17, fontWeight: 700, color: "var(--text)" }}>
-              {profileData?.companyName || profileData?.name || user?.name || "Corporate Dashboard"}
+              Company Dashboard
             </span>
           </div>
 
@@ -220,19 +282,44 @@ export default function CompanyDashboard({ onLogout }) {
         {/* Content */}
         <main style={{ flex: 1, padding: "32px", maxWidth: 1400, width: "100%" }}>
 
-          {/* Stat cards — shown only on opportunities landing */}
-          {active === "opportunities" && view === "opportunities" && (
-            <div className="grid-3" style={{ marginBottom: 28 }}>
-              <StatCard label="Live Vacancies" value={opportunities.length} icon={Briefcase} trend="Active Postings" />
-              <StatCard label="Total Applicants" value={analytics?.totalApplicants || 0} icon={Users} trend="Across all openings" />
-              <StatCard label="Closed Positions" value={analytics?.closedCount || 0} icon={Archive} trend="Completed" />
+          {/* ── Deadline Alert Banner ── */}
+          {active === "opportunities" && view === "opportunities" && alerts.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
+              {alerts.map((alert, i) => (
+                <div key={i} style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 16px", borderRadius: 8, fontSize: 14, fontWeight: 500,
+                  background: alert.color === "red" ? "#fee2e2" : "#fff7ed",
+                  color: alert.color === "red" ? "#dc2626" : "#ea580c",
+                  borderLeft: `4px solid ${alert.color === "red" ? "#dc2626" : "#ea580c"}`,
+                  animation: "slideDown 0.3s ease"
+                }}>
+                  <span>{alert.color === "red" ? "🔴" : "⚠️"}</span>
+                  <span style={{ flex: 1 }}>{alert.message}</span>
+                  <button
+                    onClick={() => dismissAlert(i)}
+                    style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "inherit", opacity: 0.6, fontSize: 16, lineHeight: 1 }}
+                    onMouseEnter={e => e.target.style.opacity = 1}
+                    onMouseLeave={e => e.target.style.opacity = 0.6}
+                  >✕</button>
+                </div>
+              ))}
             </div>
           )}
 
-          {/* Main views */}
+          {/* ── 6 Stat Cards ── */}
+          {active === "opportunities" && view === "opportunities" && (
+            <div className="ch-stat-cards-row">
+              {stats.map((card, i) => (
+                <StatCard key={i} {...card} />
+              ))}
+            </div>
+          )}
+
+          {/* ── Main views ── */}
           {active === "opportunities" && view === "opportunities" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-              <CompanyAnalytics />
+              <CompanyAnalytics refreshTick={refreshTick} />
               <div className="panel">
                 <div className="panel-header">
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -246,11 +333,11 @@ export default function CompanyDashboard({ onLogout }) {
                 </div>
                 <div className="panel-body" style={{ padding: 0 }}>
                   <Opportunities
-                    onViewApplicants={(opp) => { setSelectedOppId(opp._id); setView("applicants"); }}
+                    onRefresh={() => { fetchOpportunities(); fetchDashboardStats(); fetchDeadlineAlerts(); setRefreshTick(t => t + 1); }}
+                    onViewApplicants={(opp) => { setSelectedOppId(opp._id); setSelectedOpp(opp); setView("applicants"); }}
                     onCreateNew={() => { setEditingOpp(null); setActive("create"); }}
                     onEditOpportunity={(opp) => { setEditingOpp(opp); setActive("create"); }}
                   />
-
                 </div>
               </div>
             </div>
@@ -259,6 +346,7 @@ export default function CompanyDashboard({ onLogout }) {
           {view === "applicants" && (
             <Applicants
               opportunityId={selectedOppId}
+              opportunity={selectedOpp}
               onBack={() => setView("opportunities")}
             />
           )}
@@ -266,8 +354,8 @@ export default function CompanyDashboard({ onLogout }) {
           {active === "create" && (
             <CreateEditOpportunities
               editOpportunity={editingOpp}
-              onSuccess={() => { fetchOpportunities(); setActive("opportunities"); setView("opportunities"); setEditingOpp(null); }}
-              onOpportunityCreated={() => { fetchOpportunities(); setActive("opportunities"); setView("opportunities"); setEditingOpp(null); }}
+              onSuccess={() => { fetchOpportunities(); fetchDashboardStats(); fetchDeadlineAlerts(); setActive("opportunities"); setView("opportunities"); setEditingOpp(null); }}
+              onOpportunityCreated={() => { fetchOpportunities(); fetchDashboardStats(); fetchDeadlineAlerts(); setActive("opportunities"); setView("opportunities"); setEditingOpp(null); }}
             />
           )}
 
@@ -287,29 +375,13 @@ export default function CompanyDashboard({ onLogout }) {
           )}
         </main>
       </div>
-    </div>
-  );
-}
 
-function StatCard({ label, value, icon: Icon, trend }) {
-  return (
-    <div className="panel" style={{ transition: "transform 0.2s", cursor: "default" }}>
-      <div className="panel-body" style={{ display: "flex", alignItems: "center", gap: 18 }}>
-        <div style={{
-          width: 48, height: 48, borderRadius: 12,
-          background: "rgba(27,79,216,0.06)", color: "var(--accent)",
-          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-        }}>
-          <Icon size={24} />
-        </div>
-        <div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700, marginBottom: 4 }}>{label}</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 28, fontWeight: 700, color: "var(--text)" }}>{value}</div>
-            {trend && <div style={{ fontSize: 10, color: "var(--green)", fontWeight: 700 }}>{trend}</div>}
-          </div>
-        </div>
-      </div>
+      <style>{`
+        @keyframes slideDown {
+          from { transform: translateY(-10px); opacity: 0; }
+          to   { transform: translateY(0);     opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }

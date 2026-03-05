@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 import axios from "axios";
-import toast from "react-hot-toast";
+import toast from '../common/toastManager';
 import { useStudent } from "../../context/StudentContext";
 import { getPublicSettings } from "../../services/authService";
 
@@ -203,7 +203,7 @@ export default function StudentDashboard({ onLogout }) {
         <aside className="sidebar">
           {/* Brand */}
           <div className="sidebar-brand">
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0, marginRight: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, flexShrink: 0 }}>
               <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <g fill="var(--accent)">
                   {/* Top Left */}
@@ -218,14 +218,14 @@ export default function StudentDashboard({ onLogout }) {
                 </g>
               </svg>
             </div>
-            <div>
+            <div className="sidebar-user-info">
               <div className="sidebar-brand-name">Campus <span style={{ color: "var(--accent)" }}>Hive</span></div>
               <div className="sidebar-brand-sub" style={{ marginTop: "2px", letterSpacing: "1px" }}>T&amp;P PORTAL</div>
             </div>
           </div>
 
           {/* Nav */}
-          <nav className="sidebar-nav" style={{ flex: 1, overflowY: "auto" }}>
+          <nav className="sidebar-nav">
             <div className="sidebar-group">
               {displayMenuItems.map((item) => {
                 const isActive = activeTab === item.id;
@@ -268,7 +268,7 @@ export default function StudentDashboard({ onLogout }) {
       )}
 
       {/* ── MAIN AREA ────────────────────────────────────────── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", marginLeft: sidebarOpen ? 230 : 0, transition: "margin-left 0.25s" }}>
+      <div className={sidebarOpen ? "main-content" : "main-content-full"}>
 
         {/* Header */}
         <header style={{

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Save, Shield, Layout, Settings } from "lucide-react";
-import toast from "react-hot-toast";
+import toast from '../common/toastManager';
 import axios from "axios";
 import api from "../../services/api";
 

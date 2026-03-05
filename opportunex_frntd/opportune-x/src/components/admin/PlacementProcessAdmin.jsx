@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import toast from 'react-hot-toast';
+import toast from '../common/toastManager';
 import { Edit2, Trash2, Plus, X, GitMerge, Check, Briefcase, FileText, Users, Mic, Award, Flag } from 'lucide-react';
 import {
   getPlacementProcess,

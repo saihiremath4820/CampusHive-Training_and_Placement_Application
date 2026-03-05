@@ -314,3 +314,192 @@ export async function runAIEngine(student, project) {
     return { error: "Matching failed", matchScore: 0, mode: "ERROR" };
   }
 }
+
+/* ------------------------------------------------------------------ */
+/*  SHARED HELPER — PDF TEXT EXTRACTION                                 */
+/* ------------------------------------------------------------------ */
+async function extractPDFText(filePath) {
+  let buffer;
+  if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+    console.log(`☁️ Fetching resume from URL: ${filePath}`);
+    const res = await fetch(filePath);
+    if (!res.ok) throw new Error(`Failed to fetch file: ${res.statusText}`);
+    const arrayBuffer = await res.arrayBuffer();
+    buffer = Buffer.from(arrayBuffer);
+  } else {
+    buffer = fs.readFileSync(filePath);
+  }
+
+  try {
+    const data = await pdf(buffer);
+    return data.text.toLowerCase();
+  } catch (e) {
+    console.error("PDF Parse Error:", e);
+    return buffer.toString("utf-8").toLowerCase();
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  COMPANY ATS — Resume vs Job Opening                                 */
+/* ------------------------------------------------------------------ */
+export async function analyzeResumeForJob(resumePath, studentProfile, opportunity) {
+  const resumeText = await extractPDFText(resumePath);
+
+  if (resumeText.trim().length < 100) {
+    return {
+      overallScore: 0,
+      breakdown: { skillsMatch: 0, cgpaScore: 0, resumeRelevance: 0, profileScore: 0 },
+      skillMatch: { matched: [], missing: opportunity.requiredSkills || [], extra: [] },
+      cgpaCheck: { studentCGPA: studentProfile.cgpa || 0, requiredCGPA: opportunity.requiredCGPA || 0, meets: false },
+      strengths: [],
+      concerns: ["Resume appears to be a scanned/image PDF — text could not be extracted."],
+      recommendation: "NO",
+      summary: "Unable to analyze: the resume is a scanned image PDF that ATS systems cannot read. The student should re-upload a text-based PDF.",
+      mode: "ERROR_SCANNED_PDF"
+    };
+  }
+
+  const prompt = `You are an expert ATS (Applicant Tracking System) for campus placements in India.
+Evaluate this student's fit for the job opening below.
+
+FAIRNESS RULES (STRICT — follow always):
+- Evaluate fairly regardless of resume writing style or language quality
+- Focus on WHAT they did not HOW they wrote it
+- React, ReactJS, React.js = same skill. Node, Node.js, NodeJS = same skill.
+- A student who built a React project HAS React skills even if written simply
+- Give benefit of doubt for implied skills from project descriptions
+- Do not penalize for simple or brief descriptions
+
+JOB REQUIREMENTS:
+Title: ${opportunity.title}
+Description: ${opportunity.description}
+Required Skills: ${(opportunity.requiredSkills || []).join(", ")}
+Minimum CGPA: ${opportunity.requiredCGPA}
+Required Degree: ${opportunity.requiredDegree}
+Job Type: ${opportunity.type}
+
+STUDENT PROFILE:
+Branch: ${studentProfile.branch}
+Year: ${studentProfile.year}
+CGPA: ${studentProfile.cgpa}
+Declared Skills: ${(studentProfile.skills || []).join(", ")}
+
+RESUME TEXT:
+"""
+${resumeText.substring(0, 4000)}
+"""
+
+Return ONLY valid JSON — no explanation, no markdown:
+{
+  "overallScore": <0-100>,
+  "breakdown": {
+    "skillsMatch": <0-40>,
+    "cgpaScore": <0-20>,
+    "resumeRelevance": <0-25>,
+    "profileScore": <0-15>
+  },
+  "skillMatch": {
+    "matched": ["skills in resume AND required"],
+    "missing": ["required skills NOT in resume"],
+    "extra": ["bonus skills not required but valuable"]
+  },
+  "cgpaCheck": {
+    "studentCGPA": <number>,
+    "requiredCGPA": <number>,
+    "meets": <true/false>
+  },
+  "strengths": ["strength 1", "strength 2"],
+  "concerns": ["concern 1"],
+  "recommendation": "STRONG_YES | YES | MAYBE | NO",
+  "summary": "3 sentence fair assessment of candidate for this specific role"
+}`;
+
+  const response = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.2,
+    max_tokens: 1200,
+    response_format: { type: "json_object" }
+  });
+
+  const parsed = JSON.parse(response.choices[0].message.content);
+  return { ...parsed, mode: "GROQ_AI" };
+}
+
+/* ------------------------------------------------------------------ */
+/*  FACULTY ATS — Resume vs Research Project                            */
+/* ------------------------------------------------------------------ */
+export async function analyzeResumeForProject(resumePath, studentProfile, project) {
+  const resumeText = await extractPDFText(resumePath);
+
+  if (resumeText.trim().length < 100) {
+    return {
+      fitScore: 0,
+      breakdown: { domainRelevance: 0, skillAlignment: 0, academicStrength: 0, initiative: 0 },
+      skills: { relevant: [], missing: [], transferable: [] },
+      academicStrength: "NEEDS_SUPPORT",
+      strengths: [],
+      growthAreas: ["Resume appears to be a scanned/image PDF — text could not be extracted."],
+      recommendation: "NOT_RECOMMENDED",
+      summary: "Unable to analyze: the resume is a scanned image PDF. The student should re-upload a text-based PDF.",
+      mode: "ERROR_SCANNED_PDF"
+    };
+  }
+
+  const prompt = `You are an expert academic advisor evaluating a student for a research project.
+
+FAIRNESS RULES (STRICT):
+- Evaluate fairly regardless of writing style
+- Focus on demonstrated skills and initiative
+- Give benefit of doubt for implied or related skills
+- Academic projects count as real experience for students
+
+PROJECT DETAILS:
+Title: ${project.title}
+Domain: ${project.domain}
+Description: ${project.description}
+
+STUDENT PROFILE:
+Branch: ${studentProfile.branch}
+Year: ${studentProfile.year}
+CGPA: ${studentProfile.cgpa}
+Declared Skills: ${(studentProfile.skills || []).join(", ")}
+
+RESUME TEXT:
+"""
+${resumeText.substring(0, 4000)}
+"""
+
+Return ONLY valid JSON — no explanation, no markdown:
+{
+  "fitScore": <0-100>,
+  "breakdown": {
+    "domainRelevance": <0-40>,
+    "skillAlignment": <0-30>,
+    "academicStrength": <0-20>,
+    "initiative": <0-10>
+  },
+  "skills": {
+    "relevant": ["student skills useful for project"],
+    "missing": ["skills they would need to learn"],
+    "transferable": ["skills that apply indirectly"]
+  },
+  "academicStrength": "STRONG | MODERATE | NEEDS_SUPPORT",
+  "strengths": ["strength 1", "strength 2"],
+  "growthAreas": ["area 1", "area 2"],
+  "recommendation": "HIGHLY_RECOMMENDED | RECOMMENDED | CONDITIONAL | NOT_RECOMMENDED",
+  "summary": "3 sentence academic assessment of student fit for this project"
+}`;
+
+  const response = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.2,
+    max_tokens: 1200,
+    response_format: { type: "json_object" }
+  });
+
+  const parsed = JSON.parse(response.choices[0].message.content);
+  return { ...parsed, mode: "GROQ_AI" };
+}
+

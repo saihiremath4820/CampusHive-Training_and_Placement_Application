@@ -41,6 +41,7 @@ export const getAllApplications = () => api.get("/admin/applications");
 /* =======================
    USERS
 ======================= */
+export const createUser = (data) => api.post("/admin/users", data);
 export const getAllUsers = () => api.get("/admin/users");
 export const updateUser = (id, data) => api.put(`/admin/users/${id}`, data);
 export const deleteUser = (id) => api.delete(`/admin/users/${id}`);

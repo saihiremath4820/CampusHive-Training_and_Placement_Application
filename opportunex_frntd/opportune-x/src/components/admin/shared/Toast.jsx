@@ -1,4 +1,4 @@
-import { Toaster } from 'react-hot-toast';
+import ToastContainer from '../../common/ToastContainer';
 
 /**
  * Toast Notification Provider
@@ -12,81 +12,14 @@ import { Toaster } from 'react-hot-toast';
 
 export default function Toast() {
   return (
-    <Toaster
-      position="top-right"
-      reverseOrder={false}
-      gutter={8}
-      containerStyle={{
-        top: 20,
-        right: 20,
-      }}
-      toastOptions={{
-        // Default options
-        duration: 4000,
-        
-        // Success style
-        success: {
-          duration: 3000,
-          style: {
-            background: '#10b981',
-            color: '#fff',
-            padding: '16px',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-          },
-          iconTheme: {
-            primary: '#fff',
-            secondary: '#10b981',
-          },
-        },
-        
-        // Error style
-        error: {
-          duration: 5000,
-          style: {
-            background: '#ef4444',
-            color: '#fff',
-            padding: '16px',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-          },
-          iconTheme: {
-            primary: '#fff',
-            secondary: '#ef4444',
-          },
-        },
-        
-        // Loading style
-        loading: {
-          style: {
-            background: '#3b82f6',
-            color: '#fff',
-            padding: '16px',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-          },
-        },
-        
-        // Custom style (works in dark mode too)
-        style: {
-          background: '#1f2937',
-          color: '#fff',
-          padding: '16px',
-          borderRadius: '8px',
-          fontSize: '14px',
-        },
-      }}
-    />
+    <ToastContainer />
   );
 }
 
 /**
  * Usage in components:
  * 
- * import toast from 'react-hot-toast';
+ * import toast from '../../common/toastManager';
  * 
  * // Success
  * toast.success('Recruiter added successfully!');

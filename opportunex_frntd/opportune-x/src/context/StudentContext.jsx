@@ -6,7 +6,7 @@ import {
   applyToOpportunity as postApplication,
   uploadStudentResume
 } from "../services/studentService";
-import toast from "react-hot-toast";
+import toast from '../components/common/toastManager';
 
 
 const StudentContext = createContext();
@@ -63,8 +63,6 @@ export const StudentProvider = ({ children }) => {
         // Populate resume if it exists in DB!
         if (profRes.data.resumePath) {
           const filename = profRes.data.resumePath.split(/[/\\]/).pop();
-          // Defaulting to the backend API route if we know the domain, but using relative is better if possible.
-          // However, API endpoint needs the full URL or proxy handled by vite.
           const { default: api } = await import("../services/api");
           const previewUrl = `${api.defaults.baseURL}/student/resume/view/${filename}`;
 
@@ -83,7 +81,7 @@ export const StudentProvider = ({ children }) => {
         sessionStorage.setItem("applications", JSON.stringify(appRes.data));
       }
     } catch {
-      // silently ignore — profile not yet created or network error
+      // silently ignore
     }
   };
 
@@ -96,15 +94,12 @@ export const StudentProvider = ({ children }) => {
   const updateProfile = async (data) => {
     try {
       const res = await saveStudentProfile(data);
-
       setProfile(res.data);
       sessionStorage.setItem("studentProfile", JSON.stringify(res.data));
-
       if (isProfileMandatoryComplete(res.data)) {
         setIsFirstLogin(false);
         sessionStorage.setItem("isFirstLogin", "false");
       }
-
       addNotification("Profile updated successfully");
     } catch (err) {
       console.error(err);
@@ -118,45 +113,30 @@ export const StudentProvider = ({ children }) => {
   const updateResume = async (file) => {
     const formData = new FormData();
     formData.append("resume", file);
-
     const res = await uploadStudentResume(formData);
-
     const resumeData = {
       name: file.name,
       size: file.size,
       previewUrl: URL.createObjectURL(file)
     };
-
     setResume(resumeData);
     sessionStorage.setItem("resume", JSON.stringify(resumeData));
-
     if (profile) {
       const updatedProfile = { ...profile, resumePath: res.data.resumePath };
       setProfile(updatedProfile);
       sessionStorage.setItem("studentProfile", JSON.stringify(updatedProfile));
     }
-
     addNotification("Resume uploaded successfully");
   };
 
   /* ---------- PROFILE COMPLETENESS ---------- */
   const isProfileMandatoryComplete = (p = profile) => {
     if (!p) return false;
-
-    const hasBasic =
-      p.fullName &&
-      p.email &&
-      p.mobile &&
-      p.degree;
-
+    const hasBasic = p.fullName && p.email && p.mobile && p.degree;
     if (!hasBasic) return false;
-
-    // Engineering logic
     if (p.degree === "B.Tech" || p.degree === "M.Tech" || p.degree === "Diploma") {
       return Boolean(p.branch && p.year);
     }
-
-    // Non-engineering
     return Boolean(p.year || p.percentage);
   };
 
@@ -165,27 +145,25 @@ export const StudentProvider = ({ children }) => {
   };
 
   /* ---------- APPLICATIONS ---------- */
-  const applyToOpportunity = async (opportunity) => {
+  const applyToOpportunity = async (opportunity, submittedData = {}) => {
     if (!isProfileCompleteForApply()) {
       toast.error("Complete profile and upload resume to apply");
       return;
     }
-
     try {
-      const res = await postApplication(opportunity._id);
-
+      const payload = { opportunityId: opportunity._id, ...submittedData };
+      const res = await postApplication(payload);
       const newApp = {
         _id: res.data.application._id,
         title: opportunity.title,
         company: opportunity.companyName,
+        companyProfileId: opportunity.companyProfileId,
         status: "Applied",
         appliedAt: new Date()
       };
-
       const updatedApps = [newApp, ...applications];
       setApplications(updatedApps);
       sessionStorage.setItem("applications", JSON.stringify(updatedApps));
-
       toast.success(`Successfully applied to ${opportunity.title}`);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to submit application");
@@ -194,16 +172,10 @@ export const StudentProvider = ({ children }) => {
 
   /* ---------- TEAM FORMATION ---------- */
   const addProject = (project) => {
-    const newProject = {
-      id: Date.now(),
-      ...project,
-      members: [],
-    };
-
+    const newProject = { id: Date.now(), ...project, members: [] };
     const updated = [...projects, newProject];
     setProjects(updated);
     sessionStorage.setItem("projects", JSON.stringify(updated));
-
     addNotification(`New project created: ${project.title}`);
   };
 
@@ -234,22 +206,14 @@ export const StudentProvider = ({ children }) => {
   };
 
   const updateRoadmapStatus = (skill, status) => {
-    const updated = roadmap.map((r) =>
-      r.skill === skill ? { ...r, status } : r
-    );
-
+    const updated = roadmap.map((r) => r.skill === skill ? { ...r, status } : r);
     setRoadmap(updated);
     sessionStorage.setItem("roadmap", JSON.stringify(updated));
   };
 
   /* ---------- NOTIFICATIONS ---------- */
   const addNotification = (message) => {
-    const notif = {
-      id: Date.now(),
-      message,
-      time: new Date().toLocaleString(),
-    };
-
+    const notif = { id: Date.now(), message, time: new Date().toLocaleString() };
     const updated = [notif, ...notifications];
     setNotifications(updated);
     sessionStorage.setItem("notifications", JSON.stringify(updated));
@@ -282,4 +246,27 @@ export const StudentProvider = ({ children }) => {
   );
 };
 
-export const useStudent = () => useContext(StudentContext);
+export const useStudent = () => {
+  const context = useContext(StudentContext);
+  if (context === undefined) {
+    console.warn("useStudent called outside provider. Returning safety mock.");
+    return {
+      profile: null,
+      applications: [],
+      notifications: [],
+      projects: [],
+      roadmap: [],
+      resume: null,
+      updateProfile: async () => { },
+      updateResume: async () => { },
+      applyToOpportunity: async () => { },
+      addProject: () => { },
+      generateRoadmap: async () => { },
+      updateRoadmapStatus: () => { },
+      isProfileMandatoryComplete: () => false,
+      isProfileCompleteForApply: () => false,
+      refreshStudentData: async () => { },
+    };
+  }
+  return context;
+};
