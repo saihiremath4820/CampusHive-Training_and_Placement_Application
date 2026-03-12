@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Lock, ShieldCheck, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Lock, ShieldCheck, ArrowRight, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import AuthLayout from "./shared/AuthLayout";
 import toast from './common/toastManager';
 
@@ -12,7 +11,9 @@ const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,8 +37,8 @@ const ResetPassword = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Reset failed");
 
-      toast.success("Identity restored! You can now sign in.");
-      navigate("/");
+      setIsSuccess(true);
+      toast.success("Password reset! You can now sign in.");
     } catch (err) {
       toast.error(err.message || "System error. Please try again later.");
     } finally {
@@ -45,79 +46,133 @@ const ResetPassword = () => {
     }
   };
 
+  if (isSuccess) {
+    return (
+      <AuthLayout
+        title="Access Restored"
+        subtitle="Your password has been successfully updated."
+        illustrationIcon={CheckCircle2}
+      >
+        <div style={{ textAlign: "center", padding: "10px 0" }}>
+          <div style={{
+            width: 72, height: 72,
+            background: "rgba(34,197,94,0.1)",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 24px"
+          }}>
+            <CheckCircle2 size={36} style={{ color: "var(--green, #22c55e)" }} />
+          </div>
+          <p style={{ color: "var(--text-muted)", fontSize: 14, lineHeight: 1.6, marginBottom: 32 }}>
+            Your identity has been restored. Sign in with your new password.
+          </p>
+          <button
+            onClick={() => navigate("/")}
+            className="login-submit-btn"
+          >
+            <span>Go to Sign In</span>
+            <ArrowRight size={18} />
+          </button>
+        </div>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout
       title="Secure Reset"
       subtitle="Define a new high-strength password for your OpportuneX identity."
       illustrationIcon={ShieldCheck}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit}>
 
-        <div className="space-y-2">
-          <label className="text-sm font-bold text-gray-700 ml-1">New Secure Password</label>
-          <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 border-r pr-3 border-gray-100 group-focus-within:text-blue-600 transition-colors">
-              <Lock size={18} />
-            </div>
+        {/* New Password */}
+        <div className="form-field" style={{ marginBottom: 14 }}>
+          <label>New Secure Password</label>
+          <div style={{ position: "relative" }}>
+            <span style={{
+              position: "absolute", left: 10, top: "50%",
+              transform: "translateY(-50%)",
+              color: "var(--text-muted)", display: "flex", alignItems: "center"
+            }}>
+              <Lock size={15} />
+            </span>
             <input
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-14 pr-12 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium"
+              className="form-input"
+              style={{ paddingLeft: 34, paddingRight: 38 }}
               required
             />
             <button
               type="button"
+              className="pw-eye-btn"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-bold text-gray-700 ml-1">Confirm Identity Password</label>
-          <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 border-r pr-3 border-gray-100 group-focus-within:text-blue-600 transition-colors">
-              <Lock size={18} />
-            </div>
+        {/* Confirm Password */}
+        <div className="form-field" style={{ marginBottom: 24 }}>
+          <label>Confirm Password</label>
+          <div style={{ position: "relative" }}>
+            <span style={{
+              position: "absolute", left: 10, top: "50%",
+              transform: "translateY(-50%)",
+              color: "var(--text-muted)", display: "flex", alignItems: "center"
+            }}>
+              <Lock size={15} />
+            </span>
             <input
-              type={showPassword ? "text" : "password"}
+              type={showConfirm ? "text" : "password"}
               placeholder="••••••••"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full pl-14 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium"
+              className="form-input"
+              style={{ paddingLeft: 34, paddingRight: 38 }}
               required
             />
+            <button
+              type="button"
+              className="pw-eye-btn"
+              onClick={() => setShowConfirm(!showConfirm)}
+            >
+              {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
         </div>
 
-        <motion.button
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
+        {/* Submit */}
+        <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black shadow-lg shadow-blue-500/20 flex items-center justify-center gap-3 transition-all disabled:opacity-70"
+          className="login-submit-btn"
         >
           {loading ? (
-            <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+            <div className="spinner" />
           ) : (
             <>
               <span>Restore My Access</span>
-              <ArrowRight size={20} />
+              <ArrowRight size={18} />
             </>
           )}
-        </motion.button>
-
-        <button
-          type="button"
-          onClick={() => navigate("/")}
-          className="w-full text-center text-gray-500 font-bold hover:text-gray-800 transition-colors"
-        >
-          Cancel & Return to Gateway
         </button>
+
+        <div className="login-divider" />
+
+        <div className="login-register-row">
+          Remember your password?{" "}
+          <button type="button" onClick={() => navigate("/")}>
+            Return to Sign In
+          </button>
+        </div>
+
       </form>
     </AuthLayout>
   );

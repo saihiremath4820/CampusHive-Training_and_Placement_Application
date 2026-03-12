@@ -125,18 +125,10 @@ router.post("/register", async (req, res) => {
         console.log("🎓 Student profile created");
       } catch (profileErr) {
         console.error("⚠️ Failed to create student profile:", profileErr);
-        // Don't fail the whole registration, just log it
+        // Profile creation failed — clean up the user and return an error
+        await require("../models/User").findByIdAndDelete(user._id);
+        return res.status(500).json({ message: "Registration failed: could not create student profile. Please try again." });
       }
-    }
-
-    // Auto-create basic StudentProfile if role is student (only name & email)
-    if (user.role === "student") {
-      const StudentProfile = require("../models/StudentProfile");
-      await StudentProfile.create({
-        userId: user._id,
-        fullName: name || "",
-        email: email.toLowerCase()
-      });
     }
 
     if (user.status === "pending") {
@@ -250,9 +242,24 @@ router.post("/forgot-password", async (req, res) => {
     await user.save();
 
     const resetLink = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
-    console.log(`🔐 RESET LINK: ${resetLink}`);
 
-    return res.json({ message: "Reset link generated" });
+    // 📧 Send the reset email
+    try {
+      const { sendPasswordResetEmail } = require("../config/mailer");
+      await sendPasswordResetEmail(user.email, resetLink);
+      console.log(`✅ Password reset email sent to: ${user.email}`);
+    } catch (emailErr) {
+      console.error("❌ Failed to send reset email:", emailErr);
+      // Invalidate the token so a stale token doesn't linger
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save();
+      return res.status(500).json({
+        message: "Failed to send reset email. Please check your email configuration or try again later.",
+      });
+    }
+
+    return res.json({ message: "Password reset email sent. Please check your inbox." });
   } catch (err) {
     console.error("Forgot password error:", err);
     return res.status(500).json({ message: "Server error" });
