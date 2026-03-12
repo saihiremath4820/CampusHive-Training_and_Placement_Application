@@ -1,18 +1,19 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, ArrowLeft, Send, CheckCircle2, ShieldAlert } from "lucide-react";
+import { Mail, ArrowLeft, Send, CheckCircle2, ShieldAlert, Building2 } from "lucide-react";
 import AuthLayout from "./shared/AuthLayout";
 import toast from './common/toastManager';
 
 const ForgotPassword = ({ onSwitch }) => {
     const [email, setEmail] = useState("");
+    const [collegeId, setCollegeId] = useState("");
     const [loading, setLoading] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!email) {
-            toast.error("Please enter your registered email.");
+        if (!email || !collegeId) {
+            toast.error("Please enter your registered email and Institution ID.");
             return;
         }
 
@@ -21,7 +22,7 @@ const ForgotPassword = ({ onSwitch }) => {
             const res = await fetch(`${import.meta.env.VITE_API_BASE}/auth/forgot-password`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email, collegeId }),
             });
 
             const data = await res.json();
@@ -96,6 +97,30 @@ const ForgotPassword = ({ onSwitch }) => {
             illustrationIcon={ShieldAlert}
         >
             <form onSubmit={handleSubmit}>
+                {/* Institution ID */}
+                <div className="form-field" style={{ marginBottom: 14 }}>
+                    <label>Institution ID</label>
+                    <div style={{ position: "relative" }}>
+                        <span style={{
+                            position: "absolute", left: 10, top: "50%",
+                            transform: "translateY(-50%)",
+                            color: "var(--text-muted)", display: "flex", alignItems: "center"
+                        }}>
+                            <Building2 size={15} />
+                        </span>
+                        <input
+                            type="text"
+                            placeholder="e.g. PICT-2025-CS"
+                            value={collegeId}
+                            onChange={(e) => setCollegeId(e.target.value)}
+                            className="form-input"
+                            style={{ paddingLeft: 34 }}
+                            required
+                        />
+                    </div>
+                </div>
+
+                {/* Email */}
                 <div className="form-field" style={{ marginBottom: 24 }}>
                     <label>Registered Email Address</label>
                     <div style={{ position: "relative" }}>

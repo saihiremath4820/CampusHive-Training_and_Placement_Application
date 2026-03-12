@@ -73,62 +73,78 @@ exports.updateProfile = async (req, res) => {
 // GET /api/company/analytics
 exports.getAnalytics = async (req, res) => {
     try {
-        const companyId = req.user.id; // Company's user ID
+        const companyId = req.user.id;
+        const collegeId = req.user.collegeId;
 
-        // 1. Get status counts
-        const statusCounts = await Application.aggregate([
-            { $match: { company: req.user._id } },
-            { $group: { _id: '$status', count: { $sum: 1 } } }
-        ]);
+        // ✅ Step 1: Find all opportunities belonging to this company
+        const opportunities = await Opportunity.find({ createdBy: companyId, collegeId })
+            .select('_id title');
+        const opportunityIds = opportunities.map(o => o._id);
 
-        let totalApplicants = 0;
-        let shortlisted = 0;
-        let interviewed = 0;
-        let offered = 0;
-
-        statusCounts.forEach(stat => {
-            totalApplicants += stat.count;
-            const status = stat._id.toLowerCase();
-            if (status === 'shortlisted') shortlisted += stat.count;
-            if (status === 'interview') interviewed += stat.count;
-            if (status === 'selected' || status === 'offered') offered += stat.count;
-        });
-
-        const conversionRate = totalApplicants > 0 ? ((offered / totalApplicants) * 100).toFixed(1) : 0;
-
-        // Mock avg time to hire for now
-        const avgTimeToHire = 14;
-
-        // 2. Get top skills in pool
-        // Find all student IDs that applied to this company
-        const applicants = await Application.find({ company: req.user._id }).distinct('student');
-
-        const skillFreq = await User.aggregate([
-            { $match: { _id: { $in: applicants }, skills: { $exists: true, $not: { $size: 0 } } } },
-            { $unwind: '$skills' },
-            { $group: { _id: { $toLower: '$skills' }, count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
-            { $limit: 10 },
-            { $project: { _id: 0, skill: '$_id', count: 1 } }
-        ]);
-
-        // 3. Applications by month
-        const byMonthRaw = await Application.aggregate([
-            { $match: { company: req.user._id } },
-            {
-                $group: {
-                    _id: { $month: '$createdAt' },
-                    count: { $sum: 1 }
+        if (opportunityIds.length === 0) {
+            return res.json({
+                success: true,
+                analytics: {
+                    totalApplicants: 0,
+                    shortlisted: 0,
+                    interviewed: 0,
+                    offered: 0,
+                    conversionRate: 0,
+                    avgTimeToHire: 0,
+                    topSkillsInPool: [],
+                    applicationsByMonth: []
                 }
-            },
-            { $sort: { '_id': 1 } }
-        ]);
+            });
+        }
 
+        // ✅ Step 2: Fetch all applications for those opportunities
+        const applications = await Application.find({ opportunityId: { $in: opportunityIds } }).lean();
+
+        const totalApplicants = applications.length;
+        const shortlisted = applications.filter(a => a.status === 'Shortlisted').length;
+        const interviewed = 0; // "Interview" is not a status in the schema — reserved for future
+        const offered = applications.filter(a => a.status === 'Selected').length;
+
+        const conversionRate = totalApplicants > 0
+            ? ((offered / totalApplicants) * 100).toFixed(1)
+            : 0;
+
+        // ✅ Step 3: Calculate real average time to hire (days from Applied → Selected)
+        const hiredApps = applications.filter(a => a.status === 'Selected' && a.createdAt && a.updatedAt);
+        const avgTimeToHire = hiredApps.length > 0
+            ? Math.round(
+                hiredApps.reduce((sum, a) =>
+                    sum + (new Date(a.updatedAt) - new Date(a.createdAt)) / (1000 * 60 * 60 * 24), 0
+                ) / hiredApps.length
+              )
+            : 0;
+
+        // ✅ Step 4: Top skills in applicant pool — from StudentProfile (where skills actually live)
+        const studentIds = [...new Set(applications.map(a => a.studentId?.toString()).filter(Boolean))];
+        const StudentProfile = require('../models/StudentProfile');
+        const profiles = await StudentProfile.find({ userId: { $in: studentIds } }).select('skills').lean();
+
+        const skillFreqMap = {};
+        profiles.forEach(p => {
+            (p.skills || []).forEach(s => {
+                const key = (s?.name || s || '').toLowerCase();
+                if (key) skillFreqMap[key] = (skillFreqMap[key] || 0) + 1;
+            });
+        });
+        const topSkillsInPool = Object.entries(skillFreqMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([skill, count]) => ({ skill, count }));
+
+        // ✅ Step 5: Applications by month — from real data
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const applicationsByMonth = byMonthRaw.map(m => ({
-            month: monthNames[m._id - 1] || 'Unknown',
-            count: m.count
-        }));
+        const monthMap = {};
+        applications.forEach(a => {
+            const monthIndex = new Date(a.createdAt).getMonth();
+            const key = monthNames[monthIndex];
+            monthMap[key] = (monthMap[key] || 0) + 1;
+        });
+        const applicationsByMonth = Object.entries(monthMap).map(([month, count]) => ({ month, count }));
 
         res.json({
             success: true,
@@ -139,7 +155,7 @@ exports.getAnalytics = async (req, res) => {
                 offered,
                 conversionRate: Number(conversionRate),
                 avgTimeToHire,
-                topSkillsInPool: skillFreq,
+                topSkillsInPool,
                 applicationsByMonth
             }
         });
