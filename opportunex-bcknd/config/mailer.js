@@ -1,23 +1,83 @@
 const nodemailer = require("nodemailer");
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.EMAIL_PORT || "587"),
-  secure: false, // true for port 465, false for 587 (STARTTLS)
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// ─────────────────────────────────────────────────────────────────────────────
+// Dual-mode mailer:
+//   • PRODUCTION  → Uses real Gmail SMTP when EMAIL_USER + EMAIL_PASS are set
+//   • DEV / TEST  → Auto-creates an Ethereal test account (no credentials needed)
+//                   A preview URL is printed to the console after each send.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Gmail App Passwords are shown with spaces (e.g. "znaw eoiq kjym jhmi")
+// but must be used WITHOUT spaces for SMTP authentication.
+const EMAIL_PASS_CLEAN = (process.env.EMAIL_PASS || "").replace(/\s/g, "");
+
+const REAL_CREDS =
+  process.env.EMAIL_USER &&
+  EMAIL_PASS_CLEAN &&
+  process.env.EMAIL_USER !== "your_gmail@gmail.com" &&
+  EMAIL_PASS_CLEAN !== "yourgmailapppassword";
+
+// Holds the lazily-created transporter (real or Ethereal)
+let _transporter = null;
+
+/**
+ * Returns (and caches) an SMTP transporter.
+ * — Production : real Gmail transporter (synchronous, created once)
+ * — Dev / Test : async Ethereal account created on first use
+ */
+async function getTransporter() {
+  if (_transporter) return _transporter;
+
+  if (REAL_CREDS) {
+    // ── PRODUCTION: Gmail SMTP ────────────────────────────────────────────────
+    _transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST || "smtp.gmail.com",
+      port: parseInt(process.env.EMAIL_PORT || "587"),
+      secure: false, // STARTTLS
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: EMAIL_PASS_CLEAN, // spaces stripped — Gmail SMTP requires the 16-char form
+      },
+    });
+    console.log(`📧 [Mailer] Production mode — sending via ${process.env.EMAIL_USER}`);
+  } else {
+    // ── DEV / TEST: Ethereal fake inbox ──────────────────────────────────────
+    console.log("📧 [Mailer] No real credentials found — using Ethereal test inbox.");
+    console.log("   Emails will NOT be delivered to real inboxes.");
+    console.log("   A preview link will be printed in the console after each send.\n");
+
+    const testAccount = await nodemailer.createTestAccount();
+    _transporter = nodemailer.createTransport({
+      host: "smtp.ethereal.email",
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
+    console.log(`   Ethereal user : ${testAccount.user}`);
+    console.log(`   Ethereal pass : ${testAccount.pass}`);
+    console.log(`   View inbox at : https://ethereal.email/login\n`);
+  }
+
+  return _transporter;
+}
 
 /**
  * Send a password reset email.
- * @param {string} to       - Recipient email address
+ * @param {string} to        - Recipient email address
  * @param {string} resetLink - Full reset URL
  */
 const sendPasswordResetEmail = async (to, resetLink) => {
+  const transporter = await getTransporter();
+
+  const senderAddress = REAL_CREDS
+    ? process.env.EMAIL_USER
+    : "noreply@opportunex.dev";
+
   const mailOptions = {
-    from: `"OpportuneX" <${process.env.EMAIL_USER}>`,
+    from: `"OpportuneX" <${senderAddress}>`,
     to,
     subject: "Password Reset Request — OpportuneX",
     html: `
@@ -64,7 +124,21 @@ const sendPasswordResetEmail = async (to, resetLink) => {
     `,
   };
 
-  return transporter.sendMail(mailOptions);
+  const info = await transporter.sendMail(mailOptions);
+
+  // In dev mode, print the Ethereal preview URL so you can actually read the email
+  if (!REAL_CREDS) {
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log(`📬 [Mailer] Password-reset email sent! (Ethereal test mode)`);
+    console.log(`   To      : ${to}`);
+    console.log(`   Preview : ${previewUrl}`);
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+  } else {
+    console.log(`✅ [Mailer] Password-reset email sent to ${to}`);
+  }
+
+  return info;
 };
 
-module.exports = { transporter, sendPasswordResetEmail };
+module.exports = { getTransporter, sendPasswordResetEmail };
