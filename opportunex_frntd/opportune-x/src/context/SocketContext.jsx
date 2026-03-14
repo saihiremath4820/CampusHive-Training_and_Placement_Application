@@ -42,10 +42,13 @@ export const SocketProvider = ({ children }) => {
             { withCredentials: true }
         );
 
+        const collegeId = sessionStorage.getItem("collegeId");
+        
         // Join personal + role room
         newSocket.emit('join', {
             userId,
-            role
+            role,
+            collegeId
         });
 
         // Listen for all notification types

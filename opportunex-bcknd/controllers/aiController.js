@@ -26,19 +26,15 @@ exports.getAtsScore = async (req, res) => {
       });
     }
 
-    // ✅ 🛡️ 2. ENTERPRISE SANDBOXING (Mathematical Isolation)
-    const rawPath = profile.resumePath;
-    const baseDir = path.resolve("uploads/resumes"); // The jail/sandbox
-    const targetFile = path.resolve(rawPath);        // The requested file
+    // ✅ 🛡️ 2. SECURE PATH RESOLUTION
+    // profile.resumePath is usually something like "uploads/resumes/filename.pdf"
+    // or just "resumes/filename.pdf" depending on how it was saved.
+    const baseDir = path.resolve(__dirname, "..", "uploads");
+    const targetFile = path.resolve(profile.resumePath); 
 
-    // path.relative(base, target) returns path from 'base' to 'target'
-    // If target is outside base, the result will start with '..'
-    const relativePart = path.relative(baseDir, targetFile);
-
-    const isOutsideSandbox = relativePart.startsWith('..') || path.isAbsolute(relativePart);
-
-    if (isOutsideSandbox) {
-      console.error(`🚨 SECURITY BREACH PROTECTED: User ${userId} attempted to access ${targetFile}`);
+    // Safety check: ensure the resolved target file is actually inside the project's uploads folder
+    if (!targetFile.startsWith(baseDir)) {
+      console.error(`🚨 SECURITY: User ${userId} attempted out-of-bounds access: ${targetFile}`);
       return res.status(403).json({ message: "Security violation: Invalid file access" });
     }
 
