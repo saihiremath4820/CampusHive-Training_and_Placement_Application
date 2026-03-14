@@ -44,7 +44,10 @@ io.on('connection', (socket) => {
     if (data && data.userId && data.role) {
       socket.join(data.userId);        // personal room
       socket.join(data.role);          // role-based room
-      console.log(`👤 ${data.role} ${data.userId} joined their room`);
+      if (data.collegeId) {
+        socket.join(`college_${data.collegeId}`); // college-based room for broadcast
+      }
+      console.log(`👤 ${data.role} ${data.userId} joined rooms: [${data.userId}, ${data.role}${data.collegeId ? ', college_' + data.collegeId : ''}]`);
     }
   });
 
@@ -142,5 +145,24 @@ app.get("/", (req, res) => {
 });
 
 httpServer.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+  console.log(`✅ Server running on port ${PORT}`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use.`);
+    console.error(`Run: netstat -ano | findstr :${PORT}  then  taskkill /PID <PID> /F`);
+    process.exit(1);
+  } else {
+    throw err;
+  }
 });
+
+// Graceful shutdown — always release the port on exit
+const shutdown = (signal) => {
+  console.log(`\n${signal} received. Closing server gracefully...`);
+  httpServer.close(() => {
+    console.log('✅ Server closed. Port released.');
+    process.exit(0);
+  });
+};
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));

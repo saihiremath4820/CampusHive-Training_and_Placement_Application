@@ -10,4 +10,20 @@ export default defineConfig({
     tailwindcss(),
   ],
   cacheDir: 'C:/Temp/vite-cache/opportune-x',
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'ui': ['framer-motion', 'lucide-react'],
+          'charts': ['recharts'],
+          'socket': ['socket.io-client'],
+        }
+      }
+    }
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom']
+  }
 })

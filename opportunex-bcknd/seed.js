@@ -59,7 +59,7 @@ async function seedDatabase() {
                 year: "Final Year",
                 cgpa: "8.5",
                 skills: ["React", "Node.js", "MongoDB", "JavaScript"],
-                resumePath: "dummy path for now"
+                resumePath: "uploads/resumes/dummy.pdf"
             },
             {
                 userId: std2Id,

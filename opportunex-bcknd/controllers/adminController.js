@@ -142,19 +142,21 @@ exports.approveDrive = async (req, res) => {
     // Create notification for each student
     if (students.length > 0) {
       const notifications = students.map(student => ({
-        userId: student._id,
-        type: 'new_opportunity',
+        recipient: student._id,
+        collegeId: drive.collegeId,
+        type: 'info', // 'new_opportunity' is not in the schema enum [info, success, warning, error]
         title: 'New Placement Drive Available',
         message: `${drive.title} is now open for applications`,
-        relatedId: drive._id,
-        read: false
+        link: `/student/opportunity/${drive._id}`,
+        isRead: false
       }));
       await Notification.insertMany(notifications);
     }
 
     res.json({ message: "Drive approved", drive });
   } catch (err) {
-    res.status(500).json({ message: "Approve drive failed" });
+    console.error("❌ Approve Drive Error:", err);
+    res.status(500).json({ message: "Approve drive failed", error: err.message });
   }
 };
 
