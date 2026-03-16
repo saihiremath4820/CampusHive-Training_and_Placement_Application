@@ -11,7 +11,7 @@ exports.getAtsScore = async (req, res) => {
     const { role } = req.body;
     const { id: userId, collegeId } = req.user;
 
-    console.log(`🤖 AI Request [ATS]: College ${collegeId}, User ${userId}, Role ${role}`);
+    if (process.env.NODE_ENV !== 'production') console.log(`🤖 AI Request [ATS]: College ${collegeId}, User ${userId}, Role ${role}`);
 
     // ✅ 🛡️ 1. NULL SAFETY: Force fetch profile from database
     const profile = await StudentProfile.findOne({ userId });
@@ -69,7 +69,7 @@ exports.getSkillMatch = async (req, res) => {
     const { student, project } = req.body;
     const { collegeId } = req.user;
 
-    console.log(`🤖 AI Request [MATCH]: College ${collegeId}`);
+    if (process.env.NODE_ENV !== 'production') console.log(`🤖 AI Request [MATCH]: College ${collegeId}`);
 
     const response = await axios.post(`${process.env.AI_ENGINE_URL}/match-skills`, {
       student,
@@ -119,7 +119,7 @@ exports.companyATSScore = async (req, res) => {
       }
     }
 
-    console.log(`🤖 Company ATS: student=${studentId}, opp=${opportunityId}`);
+    if (process.env.NODE_ENV !== 'production') console.log(`🤖 Company ATS: student=${studentId}, opp=${opportunityId}`);
 
     // Call AI engine
     const aiResponse = await axios.post(
@@ -191,7 +191,7 @@ exports.facultyATSScore = async (req, res) => {
       }
     }
 
-    console.log(`🤖 Faculty ATS: student=${studentId}, project=${projectId}`);
+    if (process.env.NODE_ENV !== 'production') console.log(`🤖 Faculty ATS: student=${studentId}, project=${projectId}`);
 
     // Call AI engine
     const aiResponse = await axios.post(

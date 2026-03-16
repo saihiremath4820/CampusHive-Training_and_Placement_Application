@@ -193,7 +193,7 @@ exports.getAllOpportunities = async (req, res) => {
   try {
     const { collegeId } = req.user;
     const opportunities = await Opportunity.find({ collegeId, isDeleted: false })
-      .populate("createdBy", "name email")
+      .populate({ path: "createdBy", select: "name email role" })
       .sort({ createdAt: -1 });
 
     // Attach applicant count per drive
@@ -272,7 +272,7 @@ exports.getAllApplications = async (req, res) => {
       .populate({
         path: "opportunityId",
         select: "title type approvalStatus",
-        populate: { path: "createdBy", select: "name" }
+        populate: { path: "createdBy", select: "name email role" }
       })
       .sort({ createdAt: -1 })
       .lean();
@@ -439,7 +439,7 @@ exports.deactivateUser = async (req, res) => {
     if (req.params.id === req.user.id) {
       return res.status(400).json({ message: "Cannot deactivate yourself" });
     }
-    const user = await User.findByIdAndUpdate(req.params.id, { status: "rejected" }, { new: true });
+    const user = await User.findByIdAndUpdate(req.params.id, { status: "deactivated" }, { new: true });
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json({ message: "User deactivated", user });
   } catch (err) {

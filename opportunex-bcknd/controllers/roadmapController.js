@@ -128,13 +128,35 @@ Return ONLY valid JSON:
 
 
 // Fallback mechanism just in case AI is completely down
+const fallbackResourceUrls = {
+    'javascript': 'https://developer.mozilla.org/en-US/docs/Web/JavaScript',
+    'react': 'https://react.dev',
+    'node': 'https://nodejs.org/en/docs',
+    'python': 'https://docs.python.org/3',
+    'mongodb': 'https://www.mongodb.com/docs',
+    'sql': 'https://www.w3schools.com/sql',
+    'typescript': 'https://www.typescriptlang.org/docs',
+    'express': 'https://expressjs.com',
+    'git': 'https://git-scm.com/doc',
+    'docker': 'https://docs.docker.com',
+    'css': 'https://developer.mozilla.org/en-US/docs/Web/CSS',
+    'html': 'https://developer.mozilla.org/en-US/docs/Web/HTML',
+    'default': 'https://developer.mozilla.org'
+};
+
+const getResourceUrl = (skill) => {
+    const key = skill.toLowerCase();
+    const match = Object.keys(fallbackResourceUrls).find(k => key.includes(k));
+    return match ? fallbackResourceUrls[match] : fallbackResourceUrls['default'];
+};
+
 function generateFallback(missingSkills) {
     return {
         roadmap: missingSkills.map(skill => ({
             skill,
             priority: "high",
             estimatedHours: 20,
-            resources: [{ title: `Learn ${skill} Docs`, type: "documentation", platform: "Official", url: "#", duration: "10 hours" }],
+            resources: [{ title: `Learn ${skill} Docs`, type: "documentation", platform: "Official", url: getResourceUrl(skill), duration: "10 hours" }],
             projects: [{ title: `Basic ${skill} app`, description: `Implement ${skill}`, difficulty: "beginner" }]
         }))
     }

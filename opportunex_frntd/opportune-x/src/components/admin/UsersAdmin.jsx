@@ -171,22 +171,25 @@ export default function UsersAdmin() {
 
             {/* ── Role Tabs */}
             <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
-                {ROLE_TABS.map(tab => (
-                    <button
-                        key={tab}
-                        onClick={() => setRoleTab(tab)}
-                        style={{
-                            padding: "5px 14px", borderRadius: 20, fontSize: 11, fontWeight: 700,
-                            border: `1px solid ${roleTab === tab ? "var(--accent)" : "var(--border)"}`,
-                            background: roleTab === tab ? "rgba(27,79,216,0.08)" : "var(--surface)",
-                            color: roleTab === tab ? "var(--accent)" : "var(--text-muted)",
-                            cursor: "pointer",
-                            textTransform: "capitalize",
-                        }}
-                    >
-                        {tab === "All" ? `All (${users.length})` : `${tab.charAt(0).toUpperCase() + tab.slice(1)}s (${users.filter(u => u.role === tab).length})`}
-                    </button>
-                ))}
+                {ROLE_TABS.map(tab => {
+                    let label = tab === "All" ? "All" : tab === "company" ? "Companies" : tab === "faculty" ? "Faculty" : tab.charAt(0).toUpperCase() + tab.slice(1) + "s";
+                    return (
+                        <button
+                            key={tab}
+                            onClick={() => setRoleTab(tab)}
+                            style={{
+                                padding: "5px 14px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                                border: `1px solid ${roleTab === tab ? "var(--accent)" : "var(--border)"}`,
+                                background: roleTab === tab ? "rgba(27,79,216,0.08)" : "var(--surface)",
+                                color: roleTab === tab ? "var(--accent)" : "var(--text-muted)",
+                                cursor: "pointer",
+                                textTransform: "capitalize",
+                            }}
+                        >
+                            {tab === "All" ? `All (${users.length})` : `${label} (${users.filter(u => u.role === tab).length})`}
+                        </button>
+                    );
+                })}
             </div>
 
             {/* ── Search + count */}

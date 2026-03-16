@@ -5,8 +5,8 @@ const path = require("path");
 // CREATE or UPDATE student profile
 exports.createOrUpdateProfile = async (req, res) => {
   try {
-    console.log("📝 Received Profile Update:", req.body);
-    console.log("👤 User ID:", req.user.id);
+    if (process.env.NODE_ENV !== 'production') console.log("📝 Received Profile Update:", req.body);
+    if (process.env.NODE_ENV !== 'production') console.log("👤 User ID:", req.user.id);
 
     // Ensure userId is correctly set
     const updateData = { ...req.body, userId: req.user.id };
@@ -46,7 +46,7 @@ exports.createOrUpdateProfile = async (req, res) => {
       });
     }
 
-    console.log("✅ Profile Saved Successfully");
+    if (process.env.NODE_ENV !== 'production') console.log("✅ Profile Saved Successfully");
     res.json(profile);
   } catch (err) {
     console.error("❌ Profile Save Error:", err);
@@ -124,16 +124,16 @@ exports.uploadResume = async (req, res) => {
 // 🔥 SMART RESUME ANALYZER — passes full student profile for personalised AI analysis
 exports.analyzeResume = async (req, res) => {
   try {
-    console.log("✅ analyzeResume called");
+    if (process.env.NODE_ENV !== 'production') console.log("✅ analyzeResume called");
 
     if (!req.file) {
-      console.log("❌ No resume file");
+      if (process.env.NODE_ENV !== 'production') console.log("❌ No resume file");
       return res.status(400).json({ message: "Resume file is required" });
     }
 
     const isUrl = req.file.path.startsWith("http://") || req.file.path.startsWith("https://");
     const absolutePath = isUrl ? req.file.path : path.resolve(req.file.path);
-    console.log("📄 Resume path:", absolutePath);
+    if (process.env.NODE_ENV !== 'production') console.log("📄 Resume path:", absolutePath);
 
     // ✅ Fetch complete student profile from DB
     const profile = await StudentProfile.findOne({ userId: req.user.id });
@@ -158,8 +158,8 @@ exports.analyzeResume = async (req, res) => {
     // Default to "software-engineer" — never hardcode "ml" unless student chose it
     const role = req.body.role || "software-engineer";
 
-    console.log("👤 Student profile sent to AI engine:", studentProfile);
-    console.log("🎯 Target role:", role);
+    if (process.env.NODE_ENV !== 'production') console.log("👤 Student profile sent to AI engine:", studentProfile);
+    if (process.env.NODE_ENV !== 'production') console.log("🎯 Target role:", role);
 
     // ✅ Save the resume path to the student profile
     await StudentProfile.findOneAndUpdate(
@@ -179,7 +179,7 @@ exports.analyzeResume = async (req, res) => {
       { timeout: 60000 }  // 60 second timeout for Groq AI
     );
 
-    console.log("🤖 AI response received, mode:", aiResponse.data?.mode, "| Score:", aiResponse.data?.atsScore);
+    if (process.env.NODE_ENV !== 'production') console.log("🤖 AI response received, mode:", aiResponse.data?.mode, "| Score:", aiResponse.data?.atsScore);
 
     res.json({
       success: true,

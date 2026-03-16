@@ -40,6 +40,7 @@ const menuGroups = [
   {
     label: "System",
     items: [
+      { id: "auditLog", icon: FileText, label: "Audit Log" },
       { id: "settings", icon: Settings, label: "Settings" },
     ],
   },
