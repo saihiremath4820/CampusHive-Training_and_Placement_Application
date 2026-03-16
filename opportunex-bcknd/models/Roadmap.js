@@ -6,6 +6,10 @@ const roadmapSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
+    opportunityId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Opportunity'
+    },
     missingSkills: [{
         type: String
     }],
@@ -21,6 +25,7 @@ const roadmapSchema = new mongoose.Schema({
     }
 });
 
+roadmapSchema.index({ student: 1, opportunityId: 1 }, { unique: true });
 // TTL index to automatically delete expired documents
 roadmapSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 

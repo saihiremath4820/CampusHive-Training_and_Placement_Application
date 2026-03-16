@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useStudent } from "../../context/StudentContext";
 import { CheckCircle2, BookOpen, Code2, TrendingUp, Zap, Clock, Star } from "lucide-react";
 
@@ -8,9 +9,17 @@ const STATUS_STYLES = {
 };
 
 export default function SkillRoadmap() {
-  const { roadmap, updateRoadmapStatus } = useStudent();
+  const { roadmaps, updateRoadmapStatus } = useStudent();
+  const [selectedId, setSelectedId] = useState(null);
 
-  const items = roadmap || [];
+  useEffect(() => {
+    if (!selectedId && roadmaps && Object.keys(roadmaps).length > 0) {
+      setSelectedId(Object.keys(roadmaps)[0]);
+    }
+  }, [roadmaps, selectedId]);
+
+  const currentDoc = roadmaps[selectedId] || { roadmap: [] };
+  const items = currentDoc.roadmap || [];
 
   const completedCount = items.filter(i => i.status === "Completed").length;
   const inProgressCount = items.filter(i => i.status === "In Progress").length;
@@ -20,6 +29,31 @@ export default function SkillRoadmap() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem" }}>
+      {/* Target Selector */}
+      {Object.keys(roadmaps).length > 0 && (
+        <div style={{ display: "flex", gap: "0.75rem", overflowX: "auto", paddingBottom: "0.5rem" }}>
+          {Object.entries(roadmaps).map(([id, r]) => {
+            const isActive = selectedId === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setSelectedId(id)}
+                style={{
+                  padding: "0.5rem 1.1rem", borderRadius: "0.75rem",
+                  background: isActive ? "var(--accent)" : "var(--surface)",
+                  color: isActive ? "#fff" : "var(--text)",
+                  border: isActive ? "none" : "1px solid var(--border)",
+                  cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+                  fontWeight: 700, fontSize: "0.85rem", transition: "all 0.2s"
+                }}
+              >
+                {r.opportunityId?.title || r.targetRole || (id === "general" ? "General Roadmap" : "Roadmap")}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
         <div>
@@ -188,7 +222,7 @@ export default function SkillRoadmap() {
                     {["Not Started", "In Progress", "Completed"].map((status) => (
                       <button
                         key={status}
-                        onClick={() => updateRoadmapStatus(item.skill, status)}
+                        onClick={() => updateRoadmapStatus(item.skill, status, selectedId)}
                         style={{
                           padding: "0.4rem 0.9rem", borderRadius: "0.75rem",
                           fontSize: "0.72rem", fontWeight: 900, cursor: "pointer",

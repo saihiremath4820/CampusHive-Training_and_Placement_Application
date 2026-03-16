@@ -3,7 +3,7 @@ const axios = require('axios');
 
 exports.generateRoadmap = async (req, res) => {
     try {
-        const { missingSkills, targetRole, studentProfile } = req.body;
+        const { missingSkills, targetRole, studentProfile, opportunityId } = req.body;
 
         if (!missingSkills || !Array.isArray(missingSkills) || missingSkills.length === 0) {
             return res.status(400).json({ success: false, message: "Missing skills array is required" });
@@ -19,14 +19,13 @@ exports.generateRoadmap = async (req, res) => {
         // For simplicity of caching, we consider exact match of missing skills logic
         const cachedRoadmap = await Roadmap.findOne({
             student: req.user.id,
-            targetRole: role,
-            missingSkills: { $all: sortedSkills, $size: sortedSkills.length },
+            opportunityId: opportunityId || null,
             expiresAt: { $gt: new Date() }
-        });
+        }).populate('opportunityId', 'title companyName');
 
         if (cachedRoadmap) {
             console.log('🔄 Returning cached roadmap');
-            return res.json({ success: true, roadmap: cachedRoadmap.roadmap });
+            return res.json({ success: true, roadmapDoc: cachedRoadmap, roadmap: cachedRoadmap.roadmap });
         }
 
         // 2. Prepare prompt
@@ -97,14 +96,17 @@ Return ONLY valid JSON:
         }
 
         // 4. Save to cache
-        const newRoadmap = new Roadmap({
-            student: req.user.id,
-            missingSkills: sortedSkills,
-            targetRole: role,
-            roadmap: aiRoadmapData.roadmap
-        });
-
-        await newRoadmap.save();
+        const savedRoadmap = await Roadmap.findOneAndUpdate(
+            { student: req.user.id, opportunityId: opportunityId || null },
+            { 
+                missingSkills: sortedSkills, 
+                targetRole: role, 
+                roadmap: aiRoadmapData.roadmap,
+                generatedAt: Date.now(),
+                expiresAt: new Date(+new Date() + 7 * 24 * 60 * 60 * 1000)
+            },
+            { new: true, upsert: true }
+        ).populate('opportunityId', 'title companyName');
 
         if (global.io) {
             global.io.to(req.user.id.toString()).emit('roadmap_ready', {
@@ -117,12 +119,24 @@ Return ONLY valid JSON:
         // 5. Return Response
         res.json({
             success: true,
+            roadmapDoc: savedRoadmap,
             roadmap: aiRoadmapData.roadmap
         });
 
     } catch (error) {
         console.error("❌ Roadmap generation error:", error);
         res.status(500).json({ success: false, message: "Failed to generate roadmap", error: error.message });
+    }
+};
+
+exports.getRoadmaps = async (req, res) => {
+    try {
+        const roadmaps = await Roadmap.find({ student: req.user.id })
+            .populate('opportunityId', 'title companyName')
+            .sort({ createdAt: -1 });
+        res.json({ roadmaps });
+    } catch (err) {
+        res.status(500).json({ message: "Failed to fetch roadmaps", error: err.message });
     }
 };
 

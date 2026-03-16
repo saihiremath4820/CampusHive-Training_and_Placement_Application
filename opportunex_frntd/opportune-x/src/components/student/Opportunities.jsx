@@ -293,7 +293,7 @@ export default function Opportunities({ onNavigateToProfile }) {
                 <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
                   {effectiveMissingSkills.length > 0 && (
                     <button
-                      onClick={() => generateRoadmap(effectiveMissingSkills, op.title)}
+                      onClick={() => generateRoadmap(effectiveMissingSkills, op.title, op._id)}
                       title={`Generate roadmap for ${effectiveMissingSkills.length} missing skills`}
                       style={{
                         padding: "0.45rem", borderRadius: "0.5rem", background: "rgba(99,102,241,0.08)",

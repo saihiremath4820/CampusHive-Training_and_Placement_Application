@@ -19,7 +19,7 @@ export const StudentProvider = ({ children }) => {
 
   /* ---------- EXTRA STATES ---------- */
   const [projects, setProjects] = useState([]);
-  const [roadmap, setRoadmap] = useState([]);
+  const [roadmaps, setRoadmaps] = useState({});
 
   /* ---------- RESUME ---------- */
   const [resume, setResume] = useState(null);
@@ -44,7 +44,7 @@ export const StudentProvider = ({ children }) => {
     setApplications(safeParse("applications", []));
     setNotifications(safeParse("notifications", []));
     setProjects(safeParse("projects", []));
-    setRoadmap(safeParse("roadmap", []));
+    setRoadmaps(safeParse("roadmaps", {}));
     setResume(safeParse("resume", null));
 
     if (sessionStorage.getItem("isFirstLogin") === "false") {
@@ -80,6 +80,20 @@ export const StudentProvider = ({ children }) => {
         setApplications(appRes.data);
         sessionStorage.setItem("applications", JSON.stringify(appRes.data));
       }
+
+      // Fetch Roadmaps
+      try {
+        const { default: api } = await import("../services/api");
+        const roadmapRes = await api.get("/student/roadmap/all");
+        if (roadmapRes.data && roadmapRes.data.roadmaps) {
+          const rmap = {};
+          roadmapRes.data.roadmaps.forEach(r => {
+            rmap[r.opportunityId?._id || "general"] = r;
+          });
+          setRoadmaps(rmap);
+          sessionStorage.setItem("roadmaps", JSON.stringify(rmap));
+        }
+      } catch (err) {}
     } catch {
       // silently ignore
     }
@@ -180,7 +194,7 @@ export const StudentProvider = ({ children }) => {
   };
 
   /* ---------- SKILL ROADMAP ---------- */
-  const generateRoadmap = async (missingSkills, targetRole = "software-engineer") => {
+  const generateRoadmap = async (missingSkills, targetRole = "software-engineer", opportunityId = null) => {
     if (!missingSkills || missingSkills.length === 0) return;
     const loadingToast = toast.loading("Generating your skill roadmap with AI\u2026");
     try {
@@ -188,15 +202,20 @@ export const StudentProvider = ({ children }) => {
       const res = await api.post("/student/roadmap/generate", {
         missingSkills,
         targetRole,
+        opportunityId,
         studentProfile: {
           branch: profile?.branch || "",
           year: profile?.year || "",
           cgpa: profile?.cgpa || ""
         }
       });
-      const generated = res.data?.roadmap || [];
-      setRoadmap(generated);
-      sessionStorage.setItem("roadmap", JSON.stringify(generated));
+      const generatedDoc = res.data?.roadmapDoc || { roadmap: res.data?.roadmap || [] };
+      const oppKey = opportunityId || "general";
+      setRoadmaps(prev => {
+        const next = { ...prev, [oppKey]: generatedDoc };
+        sessionStorage.setItem("roadmaps", JSON.stringify(next));
+        return next;
+      });
       toast.success("\u2728 Skill roadmap ready! Check Skill Pathways.", { id: loadingToast });
       addNotification("Skill roadmap generated");
     } catch (err) {
@@ -205,10 +224,14 @@ export const StudentProvider = ({ children }) => {
     }
   };
 
-  const updateRoadmapStatus = (skill, status) => {
-    const updated = roadmap.map((r) => r.skill === skill ? { ...r, status } : r);
-    setRoadmap(updated);
-    sessionStorage.setItem("roadmap", JSON.stringify(updated));
+  const updateRoadmapStatus = (skill, status, opportunityId = "general") => {
+    setRoadmaps(prev => {
+      const oppDoc = prev[opportunityId] || { roadmap: [] };
+      const updatedProg = oppDoc.roadmap.map((r) => r.skill === skill ? { ...r, status } : r);
+      const next = { ...prev, [opportunityId]: { ...oppDoc, roadmap: updatedProg } };
+      sessionStorage.setItem("roadmaps", JSON.stringify(next));
+      return next;
+    });
   };
 
   /* ---------- NOTIFICATIONS ---------- */
@@ -227,7 +250,7 @@ export const StudentProvider = ({ children }) => {
         notifications,
         setNotifications,
         projects,
-        roadmap,
+        roadmaps,
         resume,
         isFirstLogin,
         updateProfile,
@@ -255,7 +278,7 @@ export const useStudent = () => {
       applications: [],
       notifications: [],
       projects: [],
-      roadmap: [],
+      roadmaps: {},
       resume: null,
       updateProfile: async () => { },
       updateResume: async () => { },
