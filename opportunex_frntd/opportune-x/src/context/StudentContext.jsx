@@ -88,7 +88,7 @@ export const StudentProvider = ({ children }) => {
         if (roadmapRes.data && roadmapRes.data.roadmaps) {
           const rmap = {};
           roadmapRes.data.roadmaps.forEach(r => {
-            rmap[r.opportunityId?._id || "general"] = r;
+            rmap[r.opportunityId?._id || r._id || "general"] = r;
           });
           setRoadmaps(rmap);
           sessionStorage.setItem("roadmaps", JSON.stringify(rmap));
@@ -194,7 +194,7 @@ export const StudentProvider = ({ children }) => {
   };
 
   /* ---------- SKILL ROADMAP ---------- */
-  const generateRoadmap = async (missingSkills, targetRole = "software-engineer", opportunityId = null) => {
+  const generateRoadmap = async (missingSkills, targetRole = "software-engineer", opportunityId = null, companyName = "") => {
     if (!missingSkills || missingSkills.length === 0) return;
     const loadingToast = toast.loading("Generating your skill roadmap with AI\u2026");
     try {
@@ -210,6 +210,13 @@ export const StudentProvider = ({ children }) => {
         }
       });
       const generatedDoc = res.data?.roadmapDoc || { roadmap: res.data?.roadmap || [] };
+      
+      // Patch local object proactively so UI is instantly perfect
+      if (!generatedDoc.targetRole) generatedDoc.targetRole = targetRole;
+      if (!generatedDoc.opportunityId && opportunityId) {
+        generatedDoc.opportunityId = { _id: opportunityId, title: targetRole, companyName };
+      }
+
       const oppKey = opportunityId || "general";
       setRoadmaps(prev => {
         const next = { ...prev, [oppKey]: generatedDoc };

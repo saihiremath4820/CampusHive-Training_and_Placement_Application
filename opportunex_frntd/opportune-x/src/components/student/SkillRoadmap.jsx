@@ -34,6 +34,14 @@ export default function SkillRoadmap() {
         <div style={{ display: "flex", gap: "0.75rem", overflowX: "auto", paddingBottom: "0.5rem" }}>
           {Object.entries(roadmaps).map(([id, r]) => {
             const isActive = selectedId === id;
+            
+            let displayTitle = id === "general" ? "General Roadmap" : "Skill Roadmap";
+            if (r.targetRole || r.opportunityId?.title) {
+              const roleName = r.opportunityId?.title || r.targetRole;
+              const compName = r.opportunityId?.companyName;
+              displayTitle = compName ? `${roleName} @ ${compName}` : roleName;
+            }
+
             return (
               <button
                 key={id}
@@ -47,7 +55,7 @@ export default function SkillRoadmap() {
                   fontWeight: 700, fontSize: "0.85rem", transition: "all 0.2s"
                 }}
               >
-                {r.opportunityId?.title || r.targetRole || (id === "general" ? "General Roadmap" : "Roadmap")}
+                {displayTitle}
               </button>
             );
           })}
