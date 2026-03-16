@@ -18,11 +18,18 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(!profile || !isProfileMandatoryComplete(profile));
   const [showPdf, setShowPdf] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [hasUserEdited, setHasUserEdited] = useState(false);
+  const [rawFormData, setRawFormData] = useState({
     fullName: "", email: "", mobile: "", degree: "", branch: "",
     year: "", cgpa: "", percentage: "", tenth: "", twelfth: "", skills: "", github: "",
     linkedin: "", projects: "", interests: "",
   });
+
+  const formData = rawFormData;
+  const setFormData = (updater) => {
+    setHasUserEdited(true);
+    setRawFormData(updater);
+  };
 
   const getCompleteness = () => {
     const fields = ['fullName', 'email', 'mobile', 'degree', 'branch', 'year', 'skills', 'github', 'linkedin', 'projects'];
@@ -39,10 +46,12 @@ export default function Profile() {
 
 
   useEffect(() => {
+    if (hasUserEdited) return;
+
     const prefill = sessionStorage.getItem("prefillProfile");
     const prefillData = prefill ? JSON.parse(prefill) : null;
     if (profile) {
-      setFormData({
+      setRawFormData({
         fullName: profile.fullName || "",
         email: profile.email || "",
         mobile: profile.mobile || "",
@@ -62,9 +71,9 @@ export default function Profile() {
       return;
     }
     if (prefillData) {
-      setFormData(prev => ({ ...prev, fullName: prefillData.fullName || "", email: prefillData.email || "" }));
+      setRawFormData(prev => ({ ...prev, fullName: prefillData.fullName || "", email: prefillData.email || "" }));
     }
-  }, [profile]);
+  }, [profile, hasUserEdited]);
 
   const isEngineering = ["Diploma", "B.Tech", "M.Tech"].includes(formData.degree);
 
@@ -85,6 +94,7 @@ export default function Profile() {
         skills: formData.skills.split(",").map(s => s.trim().toLowerCase()).filter(Boolean),
       });
       sessionStorage.removeItem("prefillProfile");
+      setHasUserEdited(false);
       setIsEditing(false);
       toast.success("Profile saved successfully!");
     } catch (err) {
