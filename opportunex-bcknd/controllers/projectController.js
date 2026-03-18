@@ -1,4 +1,5 @@
 const Project = require("../models/Project");
+const paginate = require("../utils/paginate");
 const { createNotification } = require("./notificationController");
 
 exports.createProject = async (req, res) => {
@@ -34,14 +35,28 @@ exports.createProject = async (req, res) => {
 
 exports.getCollegeProjects = async (req, res) => {
     try {
+        const { page, limit, skip } = paginate(req.query);
         const { collegeId } = req.user;
-        // console.log("Fetching projects for college:", collegeId);
-        const projects = await Project.find({ collegeId, status: "Active" })
-            .populate("createdBy", "name branch year")
-            .populate("applicants.student", "name branch year")
-            .sort({ createdAt: -1 }); // Added sort for better UX
+        const filter = { collegeId, status: "Active" };
 
-        res.json(projects);
+        const [projects, total] = await Promise.all([
+            Project.find(filter)
+                .populate("createdBy", "name branch year")
+                .populate("applicants.student", "name branch year")
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Project.countDocuments(filter)
+        ]);
+
+        res.json({
+            projects,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        });
     } catch (err) {
         console.error("Fetch Projects Error:", err);
         res.status(500).json({ message: "Fetch failed" });
@@ -145,21 +160,23 @@ exports.getFacultyApplications = async (req, res) => {
             });
         });
 
-        // Enrich each application with StudentProfile data (branch, year, skills, resume, cgpa)
-        const allApplications = await Promise.all(
-            rawApplications.map(async (app) => {
-                const profile = await StudentProfile.findOne({ userId: app.studentId })
-                    .select("branch year skills resumePath cgpa").lean();
-                return {
-                    ...app,
-                    branch: profile?.branch || "N/A",
-                    year: profile?.year || "N/A",
-                    skills: profile?.skills || [],
-                    resumePath: profile?.resumePath || null,
-                    cgpa: profile?.cgpa || null
-                };
-            })
-        );
+        // Batch enrich all applications with StudentProfile data
+        const studentIds = rawApplications.map(app => app.studentId).filter(Boolean);
+        const studentProfiles = await StudentProfile.find({ userId: { $in: studentIds } })
+            .select("userId branch year skills resumePath cgpa").lean();
+        const profileMap = Object.fromEntries(studentProfiles.map(p => [p.userId.toString(), p]));
+
+        const allApplications = rawApplications.map(app => {
+            const profile = profileMap[app.studentId?.toString()];
+            return {
+                ...app,
+                branch: profile?.branch || "N/A",
+                year: profile?.year || "N/A",
+                skills: profile?.skills || [],
+                resumePath: profile?.resumePath || null,
+                cgpa: profile?.cgpa || null
+            };
+        });
 
         res.json(allApplications);
     } catch (err) {

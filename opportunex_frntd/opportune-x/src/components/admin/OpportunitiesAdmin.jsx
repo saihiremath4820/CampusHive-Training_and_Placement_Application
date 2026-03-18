@@ -3,6 +3,7 @@ import { Briefcase, CheckCircle, Ban, Search, Building2, Calendar, Users } from 
 import toast from '../common/toastManager';
 import { getAllOpportunities, disableOpportunity, approveDrive, rejectDrive } from "../../services/adminService";
 import LoadingSpinner from "./shared/LoadingSpinner";
+import { extractArray } from "../../utils/apiHelpers";
 
 const APPROVAL_FILTERS = ["All", "pending", "approved", "rejected"];
 const STATUS_FILTERS = ["All", "Active", "Closed"];
@@ -19,7 +20,7 @@ export default function OpportunitiesAdmin() {
     try {
       setLoading(true);
       const res = await getAllOpportunities();
-      setOpportunities(res.data || []);
+      setOpportunities(extractArray(res.data, 'opportunities'));
     } catch (err) {
       toast.error("Failed to load opportunities");
     } finally {

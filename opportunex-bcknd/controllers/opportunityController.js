@@ -2,6 +2,7 @@ const Opportunity = require("../models/Opportunity");
 const StudentProfile = require("../models/StudentProfile");
 const Application = require("../models/Application");
 const User = require("../models/User");
+const paginate = require("../utils/paginate");
 const { createNotification } = require("./notificationController");
 
 // ===============================
@@ -68,26 +69,54 @@ exports.createOpportunity = async (req, res) => {
 // ===============================
 exports.getAllOpportunities = async (req, res) => {
   try {
+    const { page, limit, skip } = paginate(req.query);
     const { collegeId, id: userId, role } = req.user;
 
-    const query = { collegeId, isDeleted: false };
+    const matchQuery = { collegeId, isDeleted: false };
+    if (role === "company") matchQuery.createdBy = new (require('mongoose').Types.ObjectId)(userId);
 
-    // Company only sees their own
-    if (role === "company") {
-      query.createdBy = userId;
-    }
-    // Admin sees all; no extra filter
+    const [opportunitiesWithCounts, total] = await Promise.all([
+      Opportunity.aggregate([
+        { $match: matchQuery },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: 'applications',
+            localField: '_id',
+            foreignField: 'opportunityId',
+            as: 'applicants'
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'createdBy',
+            foreignField: '_id',
+            as: 'creatorInfo'
+          }
+        },
+        {
+          $addFields: {
+            applicantCount: { $size: '$applicants' },
+            createdBy: { $arrayElemAt: ['$creatorInfo', 0] }
+          }
+        },
+        { $project: { creatorInfo: 0, 'createdBy.password': 0 } }
+      ]),
+      Opportunity.countDocuments(matchQuery)
+    ]);
 
-    const opportunities = await Opportunity.find(query).sort({ createdAt: -1 }).lean();
-
-    const opportunitiesWithCounts = await Promise.all(
-      opportunities.map(async (opp) => {
-        const applicants = await Application.find({ opportunityId: opp._id }).select("_id");
-        return { ...opp, applicants };
-      })
-    );
-
-    return res.status(200).json({ success: true, count: opportunitiesWithCounts.length, data: opportunitiesWithCounts });
+    return res.status(200).json({
+      success: true,
+      count: opportunitiesWithCounts.length,
+      data: opportunitiesWithCounts,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Failed to fetch opportunities", error: error.message });
   }

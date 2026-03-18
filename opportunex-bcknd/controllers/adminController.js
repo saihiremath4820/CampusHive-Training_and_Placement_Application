@@ -3,6 +3,7 @@ const Opportunity = require("../models/Opportunity");
 const Application = require("../models/Application");
 const Setting = require("../models/Setting");
 const Notification = require("../models/Notification");
+const paginate = require("../utils/paginate");
 const { createNotification } = require("./notificationController");
 
 /* ================= COMPANY APPROVALS ================= */
@@ -191,21 +192,53 @@ exports.rejectDrive = async (req, res) => {
 
 exports.getAllOpportunities = async (req, res) => {
   try {
+    const { page, limit, skip } = paginate(req.query);
     const { collegeId } = req.user;
-    const opportunities = await Opportunity.find({ collegeId, isDeleted: false })
-      .populate({ path: "createdBy", select: "name email role" })
-      .sort({ createdAt: -1 });
 
-    // Attach applicant count per drive
-    const withCounts = await Promise.all(
-      opportunities.map(async (opp) => {
-        const count = await Application.countDocuments({ opportunityId: opp._id });
-        return { ...opp.toObject(), applicantCount: count };
-      })
-    );
-    res.json(withCounts);
+    const filter = { collegeId, isDeleted: { $ne: true } };
+
+    const [opportunities, total] = await Promise.all([
+      Opportunity.aggregate([
+        { $match: filter },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: 'applications',
+            localField: '_id',
+            foreignField: 'opportunityId',
+            as: 'applications'
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'createdBy',
+            foreignField: '_id',
+            as: 'creator'
+          }
+        },
+        {
+          $addFields: {
+            applicantCount: { $size: '$applications' },
+            createdBy: { $arrayElemAt: ['$creator', 0] }
+          }
+        },
+        { $project: { applications: 0, creator: 0, 'createdBy.password': 0 } }
+      ]),
+      Opportunity.countDocuments(filter)
+    ]);
+
+    res.json({
+      opportunities,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch opportunities" });
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -348,34 +381,61 @@ exports.createUser = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
+    const { page, limit, skip } = paginate(req.query);
+    const { role, status, search } = req.query;
     const { collegeId } = req.user;
-    const users = await User.find({ collegeId }).select("-password").lean();
+
+    const filter = { collegeId };
+    if (role) filter.role = role;
+    if (status) filter.status = status;
+    if (search) filter.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } }
+    ];
+
+    const [users, total] = await Promise.all([
+      User.find(filter).select("-password").skip(skip).limit(limit).lean(),
+      User.countDocuments(filter)
+    ]);
 
     const StudentProfile = require("../models/StudentProfile");
     const CompanyProfile = require("../models/CompanyProfile");
 
-    const enrichedUsers = await Promise.all(
-      users.map(async (user) => {
-        if (user.role === "student") {
-          const profile = await StudentProfile.findOne({ userId: user._id }).select("mobile");
-          if (profile && profile.mobile) {
-            user.mobile = profile.mobile;
-          }
-        } else if (user.role === "company") {
-          const profile = await CompanyProfile.findOne({ userId: user._id }).select("companyName website contactNumber");
-          if (profile) {
-            if (profile.companyName) user.companyName = profile.companyName;
-            if (profile.website) user.website = profile.website;
-            if (profile.contactNumber) user.mobile = profile.contactNumber;
-          }
-        }
-        return user;
-      })
-    );
+    const userIds = users.map(u => u._id);
 
-    res.json(enrichedUsers);
+    const [studentProfiles, companyProfiles] = await Promise.all([
+      StudentProfile.find({ userId: { $in: userIds } }).select("userId mobile").lean(),
+      CompanyProfile.find({ userId: { $in: userIds } }).select("userId companyName website contactNumber").lean()
+    ]);
+
+    const studentMap = Object.fromEntries(studentProfiles.map(p => [p.userId.toString(), p]));
+    const companyMap = Object.fromEntries(companyProfiles.map(p => [p.userId.toString(), p]));
+
+    const enrichedUsers = users.map(user => {
+      const u = { ...user };
+      if (u.role === "student") {
+        const profile = studentMap[u._id.toString()];
+        if (profile && profile.mobile) u.mobile = profile.mobile;
+      } else if (u.role === "company") {
+        const profile = companyMap[u._id.toString()];
+        if (profile) {
+          if (profile.companyName) u.companyName = profile.companyName;
+          if (profile.website) u.website = profile.website;
+          if (profile.contactNumber) u.mobile = profile.contactNumber;
+        }
+      }
+      return u;
+    });
+
+    res.json({
+      users: enrichedUsers,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch users" });
+    res.status(500).json({ error: err.message });
   }
 };
 

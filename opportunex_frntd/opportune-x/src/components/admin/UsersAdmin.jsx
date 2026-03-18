@@ -3,6 +3,7 @@ import { Search, Trash2, Users, UserX, UserCheck, Edit, X, UserPlus } from "luci
 import toast from '../common/toastManager';
 import { getAllUsers, updateUser, deleteUser, deactivateUser, reactivateUser, createUser } from "../../services/adminService";
 import LoadingSpinner from "./shared/LoadingSpinner";
+import { extractArray } from "../../utils/apiHelpers";
 
 const ROLE_TABS = ["All", "student", "company", "faculty", "admin"];
 
@@ -33,7 +34,7 @@ export default function UsersAdmin() {
         try {
             setLoading(true);
             const res = await getAllUsers();
-            setUsers(res.data || []);
+            setUsers(extractArray(res.data, 'users'));
         } catch (err) {
             toast.error("Failed to load users");
         } finally {

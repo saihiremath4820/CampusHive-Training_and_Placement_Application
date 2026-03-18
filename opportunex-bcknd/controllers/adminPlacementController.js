@@ -8,6 +8,7 @@ const Recruiter = require("../models/Recruiter");
 const IndustryCollaboration = require("../models/IndustryCollaboration");
 const TpoContact = require("../models/TpoContact");
 const AuditLog = require("../models/AuditLog");
+const paginate = require("../utils/paginate");
 
 /* ================= OVERVIEW ================= */
 
@@ -45,7 +46,13 @@ exports.upsertOverview = async (req, res) => {
 /* ================= OBJECTIVES ================= */
 
 exports.getObjectives = async (req, res) => {
-  res.json(await PlacementObjective.find({ collegeId: req.user.collegeId }));
+  const { page, limit, skip } = paginate(req.query);
+  const filter = { collegeId: req.user.collegeId };
+  const [data, total] = await Promise.all([
+    PlacementObjective.find(filter).skip(skip).limit(limit).lean(),
+    PlacementObjective.countDocuments(filter)
+  ]);
+  res.json({ data, total, page, limit, totalPages: Math.ceil(total / limit) });
 };
 
 exports.addObjective = async (req, res) => {
@@ -90,11 +97,13 @@ exports.deleteObjective = async (req, res) => {
 /* ================= PROCESS ================= */
 
 exports.getProcess = async (req, res) => {
-  res.json(
-    await PlacementProcess.find({ collegeId: req.user.collegeId }).sort({
-      stepNumber: 1,
-    })
-  );
+  const { page, limit, skip } = paginate(req.query);
+  const filter = { collegeId: req.user.collegeId };
+  const [data, total] = await Promise.all([
+    PlacementProcess.find(filter).sort({ stepNumber: 1 }).skip(skip).limit(limit).lean(),
+    PlacementProcess.countDocuments(filter)
+  ]);
+  res.json({ data, total, page, limit, totalPages: Math.ceil(total / limit) });
 };
 
 exports.upsertProcess = async (req, res) => {
@@ -269,7 +278,13 @@ exports.updateTraining = async (req, res) => {
 /* ================= REPORTS ================= */
 
 exports.getReports = async (req, res) => {
-  res.json(await PlacementReport.find({ collegeId: req.user.collegeId }));
+  const { page, limit, skip } = paginate(req.query);
+  const filter = { collegeId: req.user.collegeId };
+  const [data, total] = await Promise.all([
+    PlacementReport.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    PlacementReport.countDocuments(filter)
+  ]);
+  res.json({ data, total, page, limit, totalPages: Math.ceil(total / limit) });
 };
 
 exports.addReport = async (req, res) => {

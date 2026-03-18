@@ -2,6 +2,7 @@
 
 const Application = require("../models/Application");
 const Opportunity = require("../models/Opportunity");
+const paginate = require("../utils/paginate");
 const { createNotification } = require("./notificationController");
 
 // Apply to an opportunity
@@ -220,16 +221,15 @@ exports.getApplicationsByOpportunity = async (req, res) => {
 
     const StudentProfile = require("../models/StudentProfile");
 
-    const enrichedApplications = await Promise.all(
-      applications.map(async (app) => {
-        if (!app.studentId?._id) return app;
-        const profile = await StudentProfile.findOne({ userId: app.studentId._id }).select("resumePath skills branch year cgpa");
-        return {
-          ...app,
-          studentProfile: profile || null
-        };
-      })
-    );
+    const studentIds = applications.map(a => a.studentId?._id).filter(Boolean);
+    const profiles = await StudentProfile.find({ userId: { $in: studentIds } })
+      .select("userId resumePath skills branch year cgpa").lean();
+    const profileMap = Object.fromEntries(profiles.map(p => [p.userId.toString(), p]));
+
+    const enrichedApplications = applications.map(app => ({
+      ...app,
+      studentProfile: profileMap[app.studentId?._id?.toString()] || null
+    }));
 
     res.status(200).json({
       count: enrichedApplications.length,
@@ -246,23 +246,22 @@ exports.getApplicationsByOpportunity = async (req, res) => {
 // Get all applications for the logged-in student
 exports.getStudentApplications = async (req, res) => {
   try {
+    const { page, limit, skip } = paginate(req.query);
     const studentId = req.user.id;
-    const Project = require("../models/Project"); // Lazy load to avoid circular dependency if any
+    const Project = require("../models/Project");
 
-    // 1. Fetch Opportunity Applications
-    const applications = await Application.find({ studentId })
-      .populate({
-        path: "opportunityId",
-        populate: { path: "createdBy", select: "name" }
-      })
-      .lean();
+    // 1. Fetch Opportunity Applications with pagination
+    const [applications, projectsList] = await Promise.all([
+      Application.find({ studentId })
+        .populate({ path: "opportunityId", populate: { path: "createdBy", select: "name" } })
+        .sort({ createdAt: -1 })
+        .lean(),
+      Project.find({ "applicants.student": studentId })
+        .populate("createdBy", "name")
+        .lean()
+    ]);
 
-    // 2. Fetch Project Applications
-    const projects = await Project.find({ "applicants.student": studentId })
-      .populate("createdBy", "name")
-      .lean();
-
-    // 3. Format Opportunities
+    // 2. Format Opportunities
     const formattedApps = applications.map(app => ({
       _id: app._id,
       title: app.opportunityId?.title || "Unknown Opportunity",
@@ -272,8 +271,8 @@ exports.getStudentApplications = async (req, res) => {
       appliedAt: app.createdAt
     }));
 
-    // 4. Format Projects
-    const formattedProjects = projects.map(p => {
+    // 3. Format Projects
+    const formattedProjects = projectsList.map(p => {
       const applicant = p.applicants.find(a => a.student.toString() === studentId);
       return {
         _id: p._id,
@@ -285,14 +284,21 @@ exports.getStudentApplications = async (req, res) => {
       };
     });
 
-    // 5. Merge and Sort
-    const merged = [...formattedApps, ...formattedProjects].sort((a, b) =>
+    // 4. Merge, Sort, Paginate
+    const all = [...formattedApps, ...formattedProjects].sort((a, b) =>
       new Date(b.appliedAt) - new Date(a.appliedAt)
     );
+    const total = all.length;
+    const paginated = all.slice(skip, skip + limit);
 
-    res.status(200).json(merged);
+    res.status(200).json({
+      applications: paginated,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Fetch failed", error: err.message });
   }
 };

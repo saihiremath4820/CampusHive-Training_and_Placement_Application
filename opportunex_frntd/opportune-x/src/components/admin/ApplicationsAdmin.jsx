@@ -3,6 +3,7 @@ import { Search, ClipboardList, Building2, User, Calendar, Filter } from "lucide
 import toast from '../common/toastManager';
 import { getAllApplications } from "../../services/adminService";
 import LoadingSpinner from "./shared/LoadingSpinner";
+import { extractArray } from "../../utils/apiHelpers";
 
 const STATUS_COLORS = {
     Applied: { bg: "rgba(27,79,216,0.1)", color: "var(--accent)" },
@@ -25,7 +26,7 @@ export default function ApplicationsAdmin() {
         try {
             setLoading(true);
             const res = await getAllApplications();
-            setApplications(res.data || []);
+            setApplications(extractArray(res.data, 'applications'));
             window.dispatchEvent(new Event('refreshPendingCounts'));
         } catch (err) {
             toast.error("Failed to load applications");
