@@ -4,25 +4,18 @@ import { getNotifications, markAsRead, clearAllNotifications } from '../services
 
 const SocketContext = createContext();
 
-export const SocketProvider = ({ children }) => {
+export const SocketProvider = ({ children, user }) => {
     const [socket, setSocket] = useState(null);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        const token = sessionStorage.getItem("token");
-        const role = sessionStorage.getItem("role");
-
-        if (!token || !role) return;
-
-        let userId = null;
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            userId = payload.id;
-        } catch (e) {
-            console.error("Failed to decode token for socket:", e);
+        if (!user) {
+            setSocket(null);
             return;
         }
+
+        const { id: userId, role, collegeId } = user;
 
         // Load initial notifications
         getNotifications().then(res => {
@@ -39,10 +32,11 @@ export const SocketProvider = ({ children }) => {
         // Connect to backend
         const newSocket = io(
             import.meta.env.VITE_API_BASE?.replace('/api', ''),
-            { withCredentials: true }
+            { 
+              withCredentials: true,
+              transports: ['websocket', 'polling']
+            }
         );
-
-        const collegeId = sessionStorage.getItem("collegeId");
         
         // Join personal + role room
         newSocket.emit('join', {

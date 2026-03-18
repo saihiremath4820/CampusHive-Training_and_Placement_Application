@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import {
     GitMerge, FlaskConical, CheckCircle2, Clock,
     ChevronRight, Target, User, Users, Loader2,
@@ -28,31 +28,24 @@ function getDomainColor(domain) {
     return DOMAIN_COLORS.default;
 }
 
-export default function StudentProjects() {
+export default function StudentProjects({ user }) {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [applying, setApplying] = useState(null);
-    const [userId, setUserId] = useState(null);
     const [myTeams, setMyTeams] = useState([]);
 
+    const userId = user?.id;
+
     useEffect(() => {
-        try {
-            const token = sessionStorage.getItem("token");
-            if (token) {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                setUserId(payload.id);
-            }
-        } catch (e) { console.error("Failed to decode token", e); }
         fetchProjects();
     }, []);
 
     const fetchProjects = async () => {
         try {
             setLoading(true);
-            const token = sessionStorage.getItem("token");
             const [projRes, teamRes] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_API_BASE}/project`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`${import.meta.env.VITE_API_BASE}/team/student`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] }))
+                api.get("/project"),
+                api.get("/team/student").catch(() => ({ data: [] }))
             ]);
             setProjects(Array.isArray(projRes.data?.data || projRes.data) ? (projRes.data?.data || projRes.data) : []);
             setMyTeams(Array.isArray(teamRes.data?.data || teamRes.data) ? (teamRes.data?.data || teamRes.data) : []);
@@ -66,10 +59,7 @@ export default function StudentProjects() {
     const handleApply = async (projectId) => {
         try {
             setApplying(projectId);
-            const token = sessionStorage.getItem("token");
-            await axios.post(`${import.meta.env.VITE_API_BASE}/project/apply`, { projectId }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.post("/project/apply", { projectId });
             toast.success("Application submitted successfully!");
             await fetchProjects();
         } catch (err) {

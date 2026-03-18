@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import { MessageSquare, Star, CheckCircle2, Loader2 } from "lucide-react";
 import toast from '../common/toastManager';
 
@@ -16,10 +16,7 @@ export default function FeedbackCompletion() {
   useEffect(() => {
     const fetchTeams = async () => {
       try {
-        const token = sessionStorage.getItem("token");
-        const res = await axios.get(`${import.meta.env.VITE_API_BASE}/team`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await api.get("/team");
         setTeams(res.data);
       } catch (err) {
         console.error("Failed to fetch teams:", err);
@@ -37,11 +34,8 @@ export default function FeedbackCompletion() {
     }
     try {
       setSubmitting(true);
-      const token = sessionStorage.getItem("token");
-      await axios.post(`${import.meta.env.VITE_API_BASE}/team/evaluate`, {
+      await api.post("/team/evaluate", {
         teamId, status, grade, feedback
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       toast.success("Evaluation submitted successfully!");
       setTeamId("");

@@ -22,12 +22,11 @@ const Login = ({ onLoginSuccess, onSwitch }) => {
         setLoading(true);
         try {
             const res = await loginUser({ email, password, collegeId });
-            const { token, role, collegeId: returnedCollegeId } = res.data;
-
-            if (token && role && returnedCollegeId) {
+            
+            if (res.data?.user) {
                 toast.success("Welcome back! Syncing your dashboard...");
                 if (typeof onLoginSuccess === "function") {
-                    onLoginSuccess(token, role, returnedCollegeId);
+                    onLoginSuccess(res.data.user);
                 }
             }
         } catch (err) {

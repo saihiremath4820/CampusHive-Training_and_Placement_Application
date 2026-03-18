@@ -47,7 +47,7 @@ const PAGE_LABELS = {
   settings: "Settings",
 };
 
-export default function AdminDashboard({ onLogout }) {
+export default function AdminDashboard({ onLogout, user }) {
   const [counts, setCounts] = useState({});
   const [pendingCounts, setPendingCounts] = useState({ pendingDrives: 0, pendingAccounts: 0, newApplications: 0 });
   const [placementStats, setPlacementStats] = useState([]);
@@ -153,6 +153,7 @@ export default function AdminDashboard({ onLogout }) {
           active={activeTab}
           setActive={setActiveTab}
           darkMode={false}
+          user={user}
         />
       )}
 

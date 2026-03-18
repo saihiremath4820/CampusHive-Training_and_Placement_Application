@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Users, CheckCircle, Plus, Loader2, Sparkles, FolderIcon, UserPlus, Info } from "lucide-react";
 import toast from '../common/toastManager';
@@ -19,8 +19,7 @@ export default function TeamFormation() {
 
   const fetchTeams = async () => {
     try {
-      const token = sessionStorage.getItem("token");
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE}/team`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get("/team");
       setTeams(res.data);
     } catch (err) {
       console.error("Failed to fetch teams:", err);
@@ -29,8 +28,7 @@ export default function TeamFormation() {
 
   const fetchProjects = async () => {
     try {
-      const token = sessionStorage.getItem("token");
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE}/project/my`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get("/project/my");
       setProjects(Array.isArray(res.data?.data || res.data) ? (res.data?.data || res.data) : []);
     } catch (err) {
       console.error("Failed to fetch projects:", err);
@@ -44,8 +42,7 @@ export default function TeamFormation() {
     setSelectedStudents([]);
     if (!projectId) return;
     try {
-      const token = sessionStorage.getItem("token");
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE}/team/project/${projectId}/available`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get(`/team/project/${projectId}/available`);
       setAvailableStudents(res.data);
     } catch (err) { toast.error("Failed to fetch available students"); }
   };
@@ -61,8 +58,7 @@ export default function TeamFormation() {
     }
     setCreating(true);
     try {
-      const token = sessionStorage.getItem("token");
-      await axios.post(`${import.meta.env.VITE_API_BASE}/team`, { name: teamName, projectId: selectedProject, studentIds: selectedStudents }, { headers: { Authorization: `Bearer ${token}` } });
+      await api.post("/team", { name: teamName, projectId: selectedProject, studentIds: selectedStudents });
       toast.success("Team created successfully!");
       setShowCreateForm(false);
       setTeamName(""); setSelectedProject(""); setSelectedStudents([]);

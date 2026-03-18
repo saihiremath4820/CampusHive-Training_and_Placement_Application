@@ -1,10 +1,10 @@
 import { useState } from "react";
+import api from "../../services/api";
 import {
   FilePlus, Type, AlignLeft, Database, Calendar,
   PlusCircle, ArrowRight, Target, Sparkles, Info, X, Loader2, GitCommit, ClipboardList
 } from "lucide-react";
 import toast from '../common/toastManager';
-import axios from "axios";
 
 export default function ProjectPostForm() {
   const [loading, setLoading] = useState(false);
@@ -35,10 +35,7 @@ export default function ProjectPostForm() {
 
     try {
       setLoading(true);
-      const token = sessionStorage.getItem("token");
-      await axios.post(`${import.meta.env.VITE_API_BASE}/project`, { ...formData, milestones: validMilestones }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.post("/project", { ...formData, milestones: validMilestones });
       toast.success("Project posted successfully! It is now visible to students.");
       setFormData({ title: "", description: "", domain: "", duration: "", milestones: ["", ""] });
     } catch (err) {

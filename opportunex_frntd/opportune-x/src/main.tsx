@@ -1,13 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 
 import App from './App';
-import ForgotPassword from './components/ForgotPassword.jsx';
-import ResetPassword from './components/ResetPassword.jsx';
 
-import { SocketProvider } from './context/SocketContext';
 import ToastContainer from './components/common/ToastContainer';
 
 window.onerror = function (msg, _url, lineNo, columnNo, _error) {
@@ -29,16 +26,10 @@ const root = document.getElementById('root');
 if (root) {
     createRoot(root).render(
         <StrictMode>
-            <SocketProvider>
-                <BrowserRouter>
-                    <ToastContainer />
-                    <Routes>
-                        <Route path="/" element={<App />} />
-                        <Route path="/forgot-password" element={<ForgotPassword onSwitch={() => { }} />} />
-                        <Route path="/reset-password/:token" element={<ResetPassword />} />
-                    </Routes>
-                </BrowserRouter>
-            </SocketProvider>
+            <BrowserRouter>
+                <ToastContainer />
+                <App />
+            </BrowserRouter>
         </StrictMode>
     );
 }

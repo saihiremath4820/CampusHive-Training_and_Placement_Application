@@ -16,7 +16,7 @@ import {
   Map as MapIcon,
 } from "lucide-react";
 
-import axios from "axios";
+import api from "../../services/api";
 import toast from '../common/toastManager';
 import { useStudent } from "../../context/StudentContext";
 import { getPublicSettings } from "../../services/authService";
@@ -40,7 +40,7 @@ const menuItems = [
   { id: "resume", label: "ATS Assistant", icon: FileSearch },
 ];
 
-export default function StudentDashboard({ onLogout }) {
+export default function StudentDashboard({ onLogout, user }) {
   const [activeTab, setActiveTab] = useState("opportunities");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [analysis, setAnalysis] = useState(null);
@@ -72,7 +72,7 @@ export default function StudentDashboard({ onLogout }) {
   useEffect(() => {
     if (activeTab !== "resume") return;
     const AI_URL = import.meta.env.VITE_AI_ENGINE_URL || "http://localhost:5001";
-    axios.get(`${AI_URL}/health`, { timeout: 4000 })
+    api.get(`${AI_URL}/health`, { timeout: 4000 })
       .then(() => setAiEngineOnline(true))
       .catch(() => {
         // Might be CORS on direct ping — fallback: assume online if backend is reachable
@@ -135,11 +135,9 @@ export default function StudentDashboard({ onLogout }) {
       formData.append('studentBranch', profile?.branch || '');
       formData.append('studentYear', profile?.year || '');
       formData.append('studentCgpa', profile?.cgpa || '');
-      const token = sessionStorage.getItem("token");
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE}/student/analyze-resume`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.post(
+        "/student/analyze-resume",
+        formData
       );
       setAnalysis(res.data.analysis);
       setLastAnalyzedAt(new Date());
@@ -334,7 +332,7 @@ export default function StudentDashboard({ onLogout }) {
             {activeTab === "profile" && <Profile />}
             {activeTab === "opportunities" && <Opportunities onNavigateToProfile={() => setActiveTab("profile")} />}
             {activeTab === "applications" && <Applications />}
-            {activeTab === "projects" && <StudentProjects />}
+            {activeTab === "projects" && <StudentProjects user={user} />}
             {activeTab === "roadmap" && <SkillRoadmap />}
             {activeTab === "placement" && <PlacementView role="student" />}
             {activeTab === "resume" && (

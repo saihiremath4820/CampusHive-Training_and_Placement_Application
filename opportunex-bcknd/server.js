@@ -52,6 +52,7 @@ io.on('connection', (socket) => {
 // Custom sanitization middleware (Express 5 compatible)
 const sanitize = require('./middleware/sanitize');
 const hpp = require('hpp');
+const cookieParser = require('cookie-parser');
 
 const allowedOrigins = [
   process.env.CLIENT_URL,
@@ -91,6 +92,9 @@ app.use(sanitize());
 
 // 🚫 Prevent Parameter Pollution
 app.use(hpp());
+
+// 🍪 Cookie Parser (for httpOnly JWT cookies)
+app.use(cookieParser());
 
 // 🐢 Rate Limiting (Increased for frontend polling)
 const limiter = rateLimit({

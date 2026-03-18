@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import { UserCircle, Save, Loader2, Mail, Briefcase, Building } from "lucide-react";
 import toast from '../common/toastManager';
 
@@ -23,11 +23,9 @@ export default function FacultyProfile({ profile, onProfileUpdate }) {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const token = sessionStorage.getItem("token");
-      await axios.put(
-        `${import.meta.env.VITE_API_BASE}/faculty/profile`,
-        { name: formData.name, position: formData.position, department: formData.department },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.put(
+        "/faculty/profile",
+        { name: formData.name, position: formData.position, department: formData.department }
       );
       onProfileUpdate(formData);
       toast.success("Profile updated successfully");

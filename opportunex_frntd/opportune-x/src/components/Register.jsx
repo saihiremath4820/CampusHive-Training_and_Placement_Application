@@ -84,15 +84,13 @@ const Register = ({ onSwitch, onRegisterSuccess }) => {
                 collegeId: formData.collegeId
             });
 
-            const { token, role: returnedRole, collegeId: returnedCollegeId, message } = res.data;
-
-            if (token) {
+            if (res.data?.user) {
                 toast.success("Account created successfully!");
                 if (onRegisterSuccess) {
-                    onRegisterSuccess(token, returnedRole, returnedCollegeId);
+                    onRegisterSuccess(res.data.user);
                 }
             } else {
-                toast.success(message || "Registration successful! Pending admin approval.");
+                toast.success(res.data?.message || "Registration successful! Pending admin approval.");
                 if (onSwitch) {
                     onSwitch("login");
                 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
+import api from "../../services/api";
 import { Building2, Globe, MapPin, Briefcase, Save, Loader2, Mail, Phone, User, Image as ImageIcon } from "lucide-react";
 import toast from '../common/toastManager';
-import axios from "axios";
 
 export default function CompanyProfileSetup({ profile, onComplete, onLogout }) {
     const [formData, setFormData] = useState({
@@ -25,10 +25,7 @@ export default function CompanyProfileSetup({ profile, onComplete, onLogout }) {
         }
         setLoading(true);
         try {
-            const token = sessionStorage.getItem("token");
-            await axios.put(`${import.meta.env.VITE_API_BASE}/company/profile`, formData, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.put("/company/profile", formData);
             toast.success("Profile Setup Complete!");
             if (onComplete) onComplete();
         } catch (err) {

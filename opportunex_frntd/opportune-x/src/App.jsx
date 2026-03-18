@@ -1,160 +1,124 @@
 import React, { useState, useEffect } from "react";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { StudentProvider } from "./context/StudentContext";
+import api from "./services/api";
 
 import Login from "./components/Login.jsx";
 import Register from "./components/Register.jsx";
 import ForgotPassword from "./components/ForgotPassword.jsx";
+import ResetPassword from "./components/ResetPassword.jsx";
 
 import StudentDashboard from "./components/student/StudentDashboard.jsx";
 import FacultyDashboard from "./components/faculty/FacultyDashboard.jsx";
 import CompanyDashboard from "./components/company/CompanyDashboard.jsx";
 import AdminDashboard from "./components/admin/AdminDashboard.jsx";
 import LoadingSpinner from "./components/admin/shared/LoadingSpinner.jsx";
+import ProtectedRoute from "./components/common/ProtectedRoute";
+import { SocketProvider } from "./context/SocketContext";
 
 const App = () => {
-  // Triggering refresh
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [role, setRole] = useState(null);
-  const [collegeId, setCollegeId] = useState(null);
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [authPage, setAuthPage] = useState("login"); // login | register | forgot
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  /* ---------- CHECK SESSION ON LOAD ---------- */
+  /* ---------- SESSION PERSISTENCE ON REFRESH ---------- */
   useEffect(() => {
-    const token = sessionStorage.getItem("token");
-    const savedRole = sessionStorage.getItem("role");
-    const savedCollegeId = sessionStorage.getItem("collegeId");
-
-    if (token && savedRole && savedCollegeId) {
-      setIsAuthenticated(true);
-      setRole(savedRole.toLowerCase());
-      setCollegeId(savedCollegeId);
-    } else {
-      setIsAuthenticated(false);
-      setRole(null);
-      setCollegeId(null);
-    }
-    setIsLoading(false);
+    const checkAuth = async () => {
+      try {
+        const res = await api.get("/auth/me");
+        if (res.data?.user) {
+          setUser(res.data.user);
+        }
+      } catch (err) {
+        console.warn("Session check failed or no session active.");
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkAuth();
   }, []);
 
   /* ---------- AUTH HANDLERS ---------- */
-  const handleLoginSuccess = (token, userRole, userCollegeId) => {
-    if (!token || !userRole || !userCollegeId) return;
-
-    const normalizedRole = userRole.toLowerCase();
-
-    sessionStorage.setItem("token", token);
-    sessionStorage.setItem("role", normalizedRole);
-    sessionStorage.setItem("collegeId", userCollegeId);
-
-    setIsAuthenticated(true);
-    setRole(normalizedRole);
-    setCollegeId(userCollegeId);
-    setAuthPage("login");
+  const handleLoginSuccess = (userData) => {
+    setUser(userData);
+    // Redirect to the intended page or their dashboard
+    const from = location.state?.from?.pathname || `/${userData.role}`;
+    navigate(from, { replace: true });
   };
 
-  const handleLogout = () => {
-    /* ---------- CLEAR SESSION ---------- */
-    sessionStorage.clear();
-
-    /* ---------- CLEAR LOCAL STUDENT DATA ---------- */
-    localStorage.removeItem("studentProfile");
-    localStorage.removeItem("applications");
-    localStorage.removeItem("notifications");
-    localStorage.removeItem("projects");
-    localStorage.removeItem("roadmap");
-    localStorage.removeItem("prefillProfile");
-
-    setIsAuthenticated(false);
-    setRole(null);
-    setCollegeId(null);
-    setAuthPage("login");
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (err) {
+      console.error("Logout failed at server:", err);
+    } finally {
+      setUser(null);
+      // Clear specific legacy local storage entries if they exist
+      localStorage.removeItem("studentProfile");
+      localStorage.removeItem("applications");
+      localStorage.removeItem("notifications");
+      localStorage.removeItem("projects");
+      localStorage.removeItem("roadmap");
+      localStorage.removeItem("prefillProfile");
+      sessionStorage.clear(); // Clear any non-auth cache too to be safe
+      navigate("/login", { replace: true });
+    }
   };
 
   if (isLoading) {
-    return <LoadingSpinner fullPage text="OpportuneX Secure Sync..." />;
+    return <LoadingSpinner fullPage text="Verifying Identity..." />;
   }
 
-  /* ---------- AUTH SCREENS ---------- */
-  if (!isAuthenticated) {
-    if (authPage === "login") {
-      return (
-        <Login
-          onLoginSuccess={handleLoginSuccess}
-          onSwitch={setAuthPage}
+  return (
+    <SocketProvider user={user}>
+      <Routes>
+        {/* Public Routes */}
+        <Route 
+          path="/login" 
+          element={!user ? <Login onLoginSuccess={handleLoginSuccess} /> : <Navigate to={`/${user.role}`} replace />} 
         />
-      );
-    }
-
-    if (authPage === "register") {
-      return (
-        <Register
-          onSwitch={setAuthPage}
-          onRegisterSuccess={handleLoginSuccess}
+        <Route 
+          path="/register" 
+          element={!user ? <Register onRegisterSuccess={handleLoginSuccess} /> : <Navigate to={`/${user.role}`} replace />} 
         />
-      );
-    }
+        <Route path="/forgot-password" element={<ForgotPassword onSwitch={() => navigate("/login")} />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-    if (authPage === "forgot") {
-      return <ForgotPassword onSwitch={setAuthPage} />;
-    }
-  }
+        {/* Role-Based Protected Routes */}
+        <Route path="/student/*" element={
+          <ProtectedRoute allowedRole="student" userRole={user?.role}>
+            <StudentProvider>
+              <StudentDashboard user={user} onLogout={handleLogout} />
+            </StudentProvider>
+          </ProtectedRoute>
+        } />
 
-  try {
-    /* ---------- ROLE-BASED DASHBOARD ---------- */
-    switch (role) {
-      case "student":
-        return (
-          <StudentProvider>
-            <StudentDashboard onLogout={handleLogout} />
-          </StudentProvider>
-        );
+        <Route path="/company/*" element={
+          <ProtectedRoute allowedRole="company" userRole={user?.role}>
+            <CompanyDashboard user={user} onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
 
-      case "faculty":
-        return <FacultyDashboard onLogout={handleLogout} />;
+        <Route path="/faculty/*" element={
+          <ProtectedRoute allowedRole="faculty" userRole={user?.role}>
+            <FacultyDashboard user={user} onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
 
-      case "company":
-        return <CompanyDashboard onLogout={handleLogout} />;
+        <Route path="/admin/*" element={
+          <ProtectedRoute allowedRole="admin" userRole={user?.role}>
+            <AdminDashboard user={user} onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
 
-      case "admin":
-        return <AdminDashboard onLogout={handleLogout} />;
-
-      default:
-        return (
-          <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center">
-            <h1 className="text-3xl font-black text-gray-900 mb-4">Identity Sync Error</h1>
-            <p className="text-red-500 font-bold mb-8 italic">
-              Received Invalid System Role: "{role}"
-            </p>
-            <div className="space-x-4">
-              <button
-                onClick={handleLogout}
-                className="px-8 py-3 bg-gray-900 text-white rounded-2xl font-black shadow-xl hover:scale-105 transition-transform"
-              >
-                Reset Session
-              </button>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-8 py-3 border-2 border-gray-900 rounded-2xl font-black hover:bg-gray-50 transition-colors"
-              >
-                Force Reload
-              </button>
-            </div>
-          </div>
-        );
-    }
-  } catch (err) {
-    console.error("CRITICAL RENDER ERROR:", err);
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-red-50">
-        <h1 className="text-2xl font-bold text-red-700">Dashboard Initialization Failed</h1>
-        <p className="mt-2 text-red-600 font-mono text-sm max-w-lg bg-white p-4 rounded-lg border border-red-200 mt-6">
-          {err.message}
-        </p>
-        <button onClick={() => window.location.reload()} className="mt-8 px-6 py-2 bg-red-600 text-white rounded-lg">Retry Sync</button>
-      </div>
-    );
-  }
+        {/* Catch-all Redirects */}
+        <Route path="/" element={<Navigate to={user ? `/${user.role}` : "/login"} replace />} />
+        <Route path="*" element={<Navigate to={user ? `/${user.role}` : "/login"} replace />} />
+      </Routes>
+    </SocketProvider>
+  );
 };
 
 export default App;

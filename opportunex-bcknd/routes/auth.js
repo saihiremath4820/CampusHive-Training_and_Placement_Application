@@ -139,17 +139,45 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
+    // Generate short-lived access token:
+    const accessToken = jwt.sign(
       { id: user._id, role: user.role, collegeId: user.collegeId },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "2h" }
     );
+
+    // Generate long-lived refresh token:
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.REFRESH_TOKEN_SECRET || "fallback_refresh_secret",
+      { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d" }
+    );
+
+    // Set both as httpOnly cookies:
+    res.cookie('token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 2 * 60 * 60 * 1000 // 2 hours in ms
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in ms
+    });
 
     return res.status(201).json({
       message: "Registered successfully",
-      token,
-      role: user.role,
-      collegeId: user.collegeId,
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        collegeId: user.collegeId
+      }
     });
   } catch (err) {
     console.error("🔥 Register CRITICAL error:", err);
@@ -197,16 +225,41 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Incorrect password. Please try again." });
     }
 
-    const token = jwt.sign(
+    const accessToken = jwt.sign(
       { id: user._id, role: user.role, collegeId: user.collegeId },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "2h" }
     );
 
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.REFRESH_TOKEN_SECRET || "fallback_refresh_secret",
+      { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d" }
+    );
+
+    res.cookie('token', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 2 * 60 * 60 * 1000
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
     return res.json({
-      token,
-      role: user.role,
-      collegeId: user.collegeId,
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        collegeId: user.collegeId
+      }
     });
   } catch (err) {
     console.error("Login error:", err);
@@ -297,6 +350,70 @@ router.post("/reset-password/:token", async (req, res) => {
   } catch (err) {
     console.error("Reset password error:", err);
     return res.status(500).json({ message: "Server error" });
+  }
+});
+
+/* ================= REFRESH TOKEN ================= */
+router.post('/refresh-token', async (req, res) => {
+  const refreshToken = req.cookies?.refreshToken;
+  if (!refreshToken) {
+    return res.status(401).json({ error: 'No refresh token' });
+  }
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || "fallback_refresh_secret");
+    const user = await User.findById(decoded.id);
+    if (!user || user.status === 'deactivated') {
+      return res.status(401).json({ error: 'User not found or inactive' });
+    }
+    const newAccessToken = jwt.sign(
+      { id: user._id, role: user.role, collegeId: user.collegeId },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "2h" }
+    );
+    res.cookie('token', newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 2 * 60 * 60 * 1000
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid refresh token' });
+  }
+});
+
+/* ================= LOGOUT ================= */
+router.post('/logout', async (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+  res.json({ success: true, message: 'Logged out successfully' });
+});
+
+/* ================= ME ================= */
+const { verifyToken } = require("../middleware/auth");
+router.get('/me', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) return res.status(401).json({ error: 'User not found' });
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        collegeId: user.collegeId
+      }
+    });
+  } catch (err) {
+    res.status(401).json({ error: 'Not authenticated' });
   }
 });
 

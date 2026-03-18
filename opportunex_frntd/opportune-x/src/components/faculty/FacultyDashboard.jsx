@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import {
   LayoutDashboard,
   PlusCircle,
@@ -42,19 +42,16 @@ const pageLabels = {
   profile: "Profile",
 };
 
-export default function FacultyDashboard({ onLogout }) {
+export default function FacultyDashboard({ onLogout, user }) {
   const [activeTab, setActiveTab] = useState("applications");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [profile, setProfile] = useState({ name: "", position: "" });
+  const [profile, setProfile] = useState({ name: user?.name || "", position: "Faculty" });
 
   useEffect(() => { fetchProfile(); }, []);
 
   const fetchProfile = async () => {
     try {
-      const token = sessionStorage.getItem("token");
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE}/faculty/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/faculty/profile");
       if (res.data) {
         setProfile({
           name: res.data.name || "Faculty",

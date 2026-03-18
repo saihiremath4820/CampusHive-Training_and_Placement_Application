@@ -46,8 +46,8 @@ const menuGroups = [
   },
 ];
 
-export default function AdminSidebar({ active, setActive, darkMode }) {
-  const adminName = sessionStorage.getItem("role") || "Admin";
+export default function AdminSidebar({ active, setActive, darkMode, user }) {
+  const adminName = user?.name || "Admin";
   const initial = adminName.charAt(0).toUpperCase();
 
   const [pendingCounts, setPendingCounts] = useState({

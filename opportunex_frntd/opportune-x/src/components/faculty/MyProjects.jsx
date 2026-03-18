@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import { FolderGit2, Calendar, Target, Clock, Loader2, Trash2, Sparkles, FolderIcon, MoreVertical } from "lucide-react";
 import toast from '../common/toastManager';
 
@@ -15,8 +15,7 @@ export default function MyProjects() {
     const fetchProjects = async () => {
         try {
             setLoading(true);
-            const token = sessionStorage.getItem("token");
-            const res = await axios.get(`${import.meta.env.VITE_API_BASE}/project/my`, { headers: { Authorization: `Bearer ${token}` } });
+            const res = await api.get("/project/my");
             setProjects(Array.isArray(res.data?.data || res.data) ? (res.data?.data || res.data) : []);
         } catch (err) {
             console.error("Failed to fetch projects:", err);
@@ -29,8 +28,7 @@ export default function MyProjects() {
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to delete this project?")) return;
         try {
-            const token = sessionStorage.getItem("token");
-            await axios.delete(`${import.meta.env.VITE_API_BASE}/project/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+            await api.delete(`/project/${id}`);
             setProjects(prev => prev.filter(p => p._id !== id));
             toast.success("Project deleted successfully");
         } catch (err) {

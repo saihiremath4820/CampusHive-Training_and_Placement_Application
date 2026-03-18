@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import {
   getOpportunities,
   getDashboardStats,
@@ -86,7 +86,7 @@ const STAT_CARDS_DATA = (dashboardStats) => [
 const STAT_CARDS = STAT_CARDS_DATA;
 
 
-export default function CompanyDashboard({ onLogout }) {
+export default function CompanyDashboard({ onLogout, user: authUser }) {
   const [active, setActive] = useState("opportunities");
   const [view, setView] = useState("opportunities");
   const [selectedOppId, setSelectedOppId] = useState(null);
@@ -94,7 +94,11 @@ export default function CompanyDashboard({ onLogout }) {
   const [editingOpp, setEditingOpp] = useState(null);
   const [opportunities, setOpportunities] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [user, setUser] = useState({ name: "", email: "", phone: "" });
+  const [user, setUser] = useState({ 
+    name: authUser?.name || "", 
+    email: authUser?.email || "", 
+    phone: "" 
+  });
   const [profileData, setProfileData] = useState(null);
 
   // New state for 4 features
@@ -129,10 +133,7 @@ export default function CompanyDashboard({ onLogout }) {
 
   const fetchProfile = useCallback(async () => {
     try {
-      const token = sessionStorage.getItem("token");
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE}/company/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/company/profile");
       const data = res.data;
       setUser({
         name: data.recruiterName || data.name || "Recruiter",

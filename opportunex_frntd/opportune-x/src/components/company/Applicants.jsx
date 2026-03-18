@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
 import { Search, User, Zap, Clock, Download, Mail, CheckCircle2, XCircle, ArrowRight, Star, Bot, FileText } from "lucide-react";
-import axios from "axios";
+import api from "../../services/api";
 import toast from '../common/toastManager';
 import { getApplicants, updateApplicantStatus } from "../../services/companyApi";
 import ATSResultModal from "./ATSResultModal";
@@ -18,7 +18,6 @@ export default function Applicants({ opportunityId, opportunity, onBack }) {
   const [activeAtsResult, setActiveAtsResult] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [expandedRow, setExpandedRow] = useState(null);
-  const token = sessionStorage.getItem("token");
 
   useEffect(() => {
     const handleClickOutside = () => setDropdownOpen(null);
@@ -85,10 +84,10 @@ export default function Applicants({ opportunityId, opportunity, onBack }) {
     }
     setAnalyzingId(appId);
     try {
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE}/ai/company-ats-score`,
+      const res = await api.post(
+        "/ai/company-ats-score",
         { studentId: app.studentId?._id, opportunityId: opportunity._id },
-        { headers: { Authorization: `Bearer ${token}` }, timeout: 65000 }
+        { timeout: 65000 }
       );
       const result = res.data;
       setAtsResults(prev => ({ ...prev, [appId]: result }));

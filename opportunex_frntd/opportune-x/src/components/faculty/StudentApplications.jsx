@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
+import api from "../../services/api";
 import {
   PieChart, Pie, Cell, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer
 } from "recharts";
 import { Filter, Search, Check, X, AlertCircle, Loader2, ClipboardList, TrendingUp, Bot } from "lucide-react";
 import toast from '../common/toastManager';
-import axios from "axios";
 import FacultyATSModal from "./FacultyATSModal";
 
 export default function StudentApplications() {
@@ -24,10 +24,7 @@ export default function StudentApplications() {
 
   const fetchApplications = async () => {
     try {
-      const token = sessionStorage.getItem("token");
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE}/project/applications`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get("/project/applications");
       const formatted = res.data.map(app => ({
         id: `${app.projectId}-${app.studentId}`,
         originalProjectId: app.projectId,
@@ -52,10 +49,9 @@ export default function StudentApplications() {
     if (!target) return;
     setStudents(prev => prev.map(s => s.id === id ? { ...s, status, rejectionReason: reason } : s));
     try {
-      const token = sessionStorage.getItem("token");
-      await axios.put(`${import.meta.env.VITE_API_BASE}/project/application/status`, {
+      await api.put("/project/application/status", {
         projectId: target.originalProjectId, studentId: target.originalStudentId, status, rejectionReason: reason
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      });
       toast.success(`Application ${status}`);
     } catch (err) {
       setStudents(previous);
@@ -78,11 +74,10 @@ export default function StudentApplications() {
     }
     setAnalyzingId(rowId);
     try {
-      const token = sessionStorage.getItem("token");
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE}/ai/faculty-ats-score`,
+      const res = await api.post(
+        "/ai/faculty-ats-score",
         { studentId: s.originalStudentId, projectId: s.originalProjectId },
-        { headers: { Authorization: `Bearer ${token}` }, timeout: 65000 }
+        { timeout: 65000 }
       );
       const result = res.data;
       setAtsResults(prev => ({ ...prev, [rowId]: result }));

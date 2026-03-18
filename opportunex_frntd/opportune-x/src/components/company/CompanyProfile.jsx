@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
+import api from "../../services/api";
 import { Building2, Globe, MapPin, FileText, Briefcase, Save, Loader2, ShieldCheck, Mail, Phone, ExternalLink, Settings, AtSign } from "lucide-react";
 import toast from '../common/toastManager';
-import axios from "axios";
 
 export default function CompanyProfile({ profile, onUpdate }) {
     const [formData, setFormData] = useState({
@@ -36,10 +36,7 @@ export default function CompanyProfile({ profile, onUpdate }) {
         }
         setLoading(true);
         try {
-            const token = sessionStorage.getItem("token");
-            const res = await axios.put(`${import.meta.env.VITE_API_BASE}/company/profile`, formData, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.put("/company/profile", formData);
             if (onUpdate) onUpdate(res.data.data);
             toast.success("Corporate profile updated successfully!");
         } catch (err) {
