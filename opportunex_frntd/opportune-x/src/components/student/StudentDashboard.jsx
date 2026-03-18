@@ -369,220 +369,154 @@ const ROLE_OPTIONS = [
   { value: "embedded", label: "Embedded Systems" },
 ];
 
-function ScoreBadge({ score }) {
-  const color = score >= 75 ? "var(--green)" : score >= 50 ? "var(--yellow)" : "var(--red)";
-  const label = score >= 75 ? "Strong" : score >= 50 ? "Average" : "Needs Work";
-  return (
-    <span style={{
-      padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
-      background: `${color}22`, color, letterSpacing: "0.4px", border: `1px solid ${color}44`
-    }}>{label}</span>
-  );
-}
-
 function ResumeAnalyzer({ analysis, loading, error, onUpload, resumePreview, targetRole, onRoleChange, lastAnalyzedAt, hasFile, aiEngineOnline }) {
   const [showPdf, setShowPdf] = useState(false);
 
-  const fmtTime = (d) => {
-    if (!d) return null;
-    const diff = Math.floor((Date.now() - d.getTime()) / 1000);
-    if (diff < 60) return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    return d.toLocaleTimeString();
+  const getScoreClass = (score) => {
+    if (score >= 75) return "strong";
+    if (score >= 50) return "average";
+    return "weak";
+  };
+  
+  const getScoreLabel = (score) => {
+    if (score >= 75) return "Strong Match";
+    if (score >= 50) return "Average Match";
+    return "Needs Work";
   };
 
   return (
-    <div>
-      <div className="page-title-block">
-        <h1 className="page-title">ATS <em>Assistant</em></h1>
-        <p className="page-subtitle">AI-powered resume analysis personalised to your profile and target role.</p>
+    <div className="ats-wrapper">
+      <div className="page-title-block" style={{marginBottom: 0}}>
+        <h1 className="page-title" style={{fontFamily: 'inherit', fontWeight: 600}}>ATS Assistant</h1>
+        <p className="page-subtitle" style={{fontFamily: 'inherit'}}>Clean, professional AI resume analysis tailored to your target role.</p>
       </div>
 
       {/* Upload panel */}
-      <div className="panel" style={{ maxWidth: 760, marginBottom: 20 }}>
-        <div className="panel-header">
-          <span className="panel-title">Upload &amp; Analyze</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {aiEngineOnline === true && (
-              <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: "var(--green)" }}>
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--green)", display: "inline-block" }} />
-                AI Online
-              </span>
-            )}
-            {aiEngineOnline === false && (
-              <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: "var(--red)" }}>
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--red)", display: "inline-block" }} />
-                AI Offline
-              </span>
-            )}
-            {lastAnalyzedAt && (
-              <span className="panel-tag">Last analyzed: {fmtTime(lastAnalyzedAt)}</span>
-            )}
+      <div className="ats-card">
+        <div className="ats-upload-section">
+          {/* Target Role Row */}
+          <div className="ats-row" style={{ justifyContent: 'space-between' }}>
+            <div className="ats-row">
+              <label className="ats-label">Target Role</label>
+              <select
+                className="ats-select"
+                value={targetRole}
+                onChange={(e) => onRoleChange(e.target.value)}
+                disabled={loading}
+              >
+                {ROLE_OPTIONS.map(r => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
+              <span className="ats-hint">Changing will auto re-analyze</span>
+            </div>
+            {aiEngineOnline === true && <span className="ats-hint" style={{color: '#22c55e'}}>AI Engine Online</span>}
+            {aiEngineOnline === false && <span className="ats-hint" style={{color: '#ef4444'}}>AI Engine Offline</span>}
           </div>
-        </div>
-        <div className="panel-body">
 
-          {/* Role selector */}
-          <div className="form-field" style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>
-              Target Role
-              {hasFile && (
-                <span style={{ marginLeft: 8, fontSize: 10, color: "var(--accent)", fontFamily: "'DM Mono', monospace", letterSpacing: 0, fontWeight: 500, textTransform: "none" }}>
-                  · changing will auto re-analyze
-                </span>
-              )}
-            </label>
-            <select
-              value={targetRole}
-              onChange={(e) => onRoleChange(e.target.value)}
+          {/* Upload Drop Zone */}
+          <label className="ats-upload-zone" style={{ opacity: loading ? 0.6 : 1, position: 'relative' }}>
+            <input
+              type="file"
+              onChange={onUpload}
+              accept=".pdf"
               disabled={loading}
-              style={{
-                marginTop: 6, width: "100%", padding: "9px 12px",
-                background: "var(--surface-2)", border: "1px solid var(--border)",
-                borderRadius: 6, color: "var(--text)", fontSize: 13.5,
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.6 : 1
-              }}
-            >
-              {ROLE_OPTIONS.map(r => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Upload zone */}
-          <div className="form-field" style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.6px" }}>Resume PDF</label>
-            <div className="drop-zone" style={{ position: "relative", marginTop: 6 }}>
-              <input
-                type="file"
-                onChange={onUpload}
-                accept=".pdf"
-                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer", zIndex: 1 }}
-              />
-              <FileSearch size={26} style={{ color: "var(--accent)", marginBottom: 7 }} />
-              <p style={{ fontSize: 13.5, fontWeight: 500, color: "var(--text)", marginBottom: 2 }}>
-                {loading ? "Analyzing…" : analysis ? "Re-upload to re-analyze" : "Drop PDF or click to upload"}
-              </p>
-              <p style={{ fontSize: 11.5, color: "var(--text-muted)" }}>PDF Format · Max 5MB · Analyzed for role: <strong>{ROLE_OPTIONS.find(r => r.value === targetRole)?.label}</strong></p>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            {resumePreview && (
-              <button onClick={() => setShowPdf(true)} className="btn-ghost" style={{ gap: 6 }}>
-                <Eye size={13} /> View Resume
-              </button>
+            />
+            {hasFile ? (
+              <div className="ats-resume-info">
+                <FileSearch size={20} style={{ color: "#3b82f6" }} />
+                <span className="ats-resume-name">Resume Uploaded</span>
+                <span className="ats-resume-meta">PDF &middot; Analyzed for {ROLE_OPTIONS.find(r => r.value === targetRole)?.label}</span>
+                <span className="ats-reupload-btn">{loading ? "Analyzing..." : "Replace"}</span>
+              </div>
+            ) : (
+              <div className="ats-upload-prompt">
+                <FileSearch size={20} style={{ color: "#3b82f6" }} />
+                <span>Drop your resume PDF here or</span>
+                <span className="ats-browse-btn">Browse files</span>
+                <span className="ats-hint" style={{marginLeft: 8}}>Max 5MB</span>
+              </div>
             )}
-          </div>
-
-          {loading && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--accent)", fontSize: 13, marginTop: 14, padding: "10px 14px", background: "rgba(var(--accent-rgb,99,102,241),0.06)", border: "1px solid var(--border)", borderRadius: 6 }}>
-              <div style={{ width: 15, height: 15, border: "2.5px solid var(--accent)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", flexShrink: 0 }} />
-              <span>Analyzing for <strong>{ROLE_OPTIONS.find(r => r.value === targetRole)?.label}</strong> — this takes 5–10 seconds…</span>
-            </div>
-          )}
-
-          {error && (
-            <div style={{ padding: "10px 14px", background: "rgba(200,75,49,0.07)", border: "1px solid rgba(200,75,49,0.2)", borderRadius: 6, color: "var(--red)", fontSize: 13, marginTop: 14 }}>
-              {error}
-            </div>
-          )}
+          </label>
         </div>
+
+        {resumePreview && (
+          <div style={{ marginTop: 16 }}>
+             <button onClick={() => setShowPdf(true)} className="ats-reupload-btn" style={{ padding: '6px 12px', background: 'transparent' }}>
+               View PDF
+             </button>
+          </div>
+        )}
+
+        {error && (
+          <div style={{ padding: "12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 6, color: "#ef4444", fontSize: 13, marginTop: 16 }}>
+            {error}
+          </div>
+        )}
       </div>
 
       {/* ── RESULTS ── */}
-      {analysis && (
-        <div style={{ maxWidth: 900 }}>
-
+      {analysis && !loading && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          
           {/* Score card */}
-          <div className="panel" style={{ marginBottom: 16 }}>
-            <div className="panel-header">
-              <span className="panel-title">ATS Match Score</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {analysis.mode && (() => {
-                  const isGroq = analysis.mode === "GROQ_AI";
-                  return (
-                    <span className="panel-tag" style={{
-                      background: isGroq ? "rgba(59,130,246,0.1)" : "rgba(224,155,61,0.1)",
-                      color: isGroq ? "#3b82f6" : "var(--yellow)",
-                      border: `1px solid ${isGroq ? "rgba(59,130,246,0.25)" : "rgba(224,155,61,0.25)"}`,
-                      fontFamily: "'DM Mono', monospace",
-                      letterSpacing: "0.3px"
-                    }}>
-                      {isGroq ? "🤖 Groq AI" : "⚡ Keyword Engine"}
-                    </span>
-                  );
-                })()}
-                <ScoreBadge score={analysis.atsScore} />
+          <div className="ats-card">
+            <div className="ats-score-section">
+              <div className="ats-score-header">
+                <span className="ats-section-title">ATS Match Score</span>
+                {analysis.mode && (
+                  <span className="ats-score-source">{analysis.mode === 'GROQ_AI' ? 'Groq AI' : 'Keyword Engine'}</span>
+                )}
+                <span className={`ats-score-label ${getScoreClass(analysis.atsScore)}`}>{getScoreLabel(analysis.atsScore)}</span>
               </div>
-            </div>
-            <div className="panel-body">
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-                <div>
-                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 52, fontWeight: 700, color: "var(--accent)", letterSpacing: "-2px", lineHeight: 1 }}>
-                    {analysis.atsScore}<span style={{ fontSize: 22, color: "var(--text-muted)" }}>%</span>
-                  </div>
-                  {analysis.resumeSummary && (
-                    <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 8, maxWidth: 360 }}>
-                      {analysis.resumeSummary}
-                    </p>
-                  )}
+
+              <div className="ats-score-body">
+                <div className="ats-score-number">
+                  <span className="ats-score-value">{analysis.atsScore}</span>
+                  <span className="ats-score-unit">%</span>
                 </div>
-                {/* Progress bar */}
-                <div style={{ flex: 1, minWidth: 200 }}>
-                  <div style={{ height: 8, borderRadius: 8, background: "var(--border)", overflow: "hidden" }}>
-                    <div style={{
-                      height: "100%", borderRadius: 8,
-                      width: `${analysis.atsScore}%`,
-                      background: analysis.atsScore >= 75 ? "var(--green)" : analysis.atsScore >= 50 ? "var(--yellow)" : "var(--red)",
-                      transition: "width 0.8s ease"
-                    }} />
+                <div className="ats-score-right">
+                  {analysis.resumeSummary && (
+                    <p className="ats-score-summary">{analysis.resumeSummary}</p>
+                  )}
+                  <div className="ats-score-bar">
+                    <div className="ats-score-fill" style={{ width: `${analysis.atsScore}%`, background: getScoreClass(analysis.atsScore) === 'strong' ? '#22c55e' : getScoreClass(analysis.atsScore) === 'average' ? '#f59e0b' : '#ef4444' }} />
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>
-                    Role analyzed: <strong>{ROLE_OPTIONS.find(r => r.value === targetRole)?.label}</strong>
-                  </div>
+                  <span className="ats-score-role">Role: {ROLE_OPTIONS.find(r => r.value === targetRole)?.label}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* 2-col: Verified Skills + Missing Skills */}
-          <div className="grid-2" style={{ marginBottom: 16 }}>
-
-            <div className="panel">
-              <div className="panel-header">
-                <span className="panel-title" style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <CheckCircle2 size={13} style={{ color: "var(--green)" }} /> Verified Skills
-                </span>
-                <span className="panel-tag pill-green">{analysis.extractedSkills?.length || 0} found</span>
+          <div className="ats-skills-grid">
+            <div className="ats-skills-card ats-skills-verified">
+              <div className="ats-card-header">
+                <span className="ats-card-title">Verified Skills</span>
+                <span className="ats-card-count">{analysis.extractedSkills?.length || 0} found</span>
               </div>
-              <div className="panel-body" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <div className="ats-tags">
                 {(analysis.extractedSkills || []).length === 0 ? (
-                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>No skills detected in resume text</span>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>None detected</span>
                 ) : (
                   (analysis.extractedSkills || []).map((s) => (
-                    <span key={s} className="pill pill-green">{s}</span>
+                    <span key={s} className="ats-tag ats-tag-verified">{s}</span>
                   ))
                 )}
               </div>
             </div>
 
-            <div className="panel">
-              <div className="panel-header">
-                <span className="panel-title" style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <AlertCircle size={13} style={{ color: "var(--red)" }} /> Missing Skills
-                </span>
-                <span className="panel-tag" style={{ background: "rgba(200,75,49,0.08)", color: "var(--red)", border: "1px solid rgba(200,75,49,0.2)" }}>
-                  {analysis.missingSkills?.length || 0} gaps
-                </span>
+            <div className="ats-skills-card ats-skills-missing">
+              <div className="ats-card-header">
+                <span className="ats-card-title">Missing Skills</span>
+                <span className="ats-card-count">{analysis.missingSkills?.length || 0} gaps</span>
               </div>
-              <div className="panel-body" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <div className="ats-tags">
                 {(analysis.missingSkills || []).length === 0 ? (
-                  <span style={{ fontSize: 12, color: "var(--green)" }}>✓ No critical gaps detected</span>
+                  <span style={{ fontSize: 12, color: "#22c55e", fontWeight: 500 }}>No critical gaps detected</span>
                 ) : (
                   (analysis.missingSkills || []).map((s) => (
-                    <span key={s} className="pill" style={{ background: "rgba(200,75,49,0.08)", color: "var(--red)", border: "1px solid rgba(200,75,49,0.18)" }}>{s}</span>
+                    <span key={s} className="ats-tag ats-tag-missing">{s}</span>
                   ))
                 )}
               </div>
@@ -591,69 +525,54 @@ function ResumeAnalyzer({ analysis, loading, error, onUpload, resumePreview, tar
 
           {/* Strengths */}
           {analysis.strengths && analysis.strengths.length > 0 && (
-            <div className="panel" style={{ marginBottom: 16 }}>
-              <div className="panel-header">
-                <span className="panel-title">✦ Resume Strengths</span>
-              </div>
-              <div className="panel-body">
-                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                  {analysis.strengths.map((s, i) => (
-                    <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13 }}>
-                      <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--green)", flexShrink: 0, marginTop: 5 }} />
-                      <span style={{ color: "var(--text)" }}>{s}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+             <div className="ats-card">
+               <div className="ats-section-title" style={{marginBottom: 12}}>Resume Strengths</div>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                 {analysis.strengths.map((s, i) => (
+                   <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                     <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", flexShrink: 0, marginTop: 6 }} />
+                     <span className="ats-body">{s}</span>
+                   </div>
+                 ))}
+               </div>
+             </div>
           )}
 
           {/* Optimization Suggestions */}
-          <div className="panel">
-            <div className="panel-header">
-              <span className="panel-title" style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <AlertCircle size={13} style={{ color: "var(--yellow)" }} /> Optimization Suggestions
-              </span>
-              <span className="panel-tag">Specific to your resume</span>
+          <div className="ats-suggestions">
+            <div className="ats-section-header">
+              <span className="ats-section-title">Optimization Suggestions</span>
+              <span className="ats-hint">Specific to your resume</span>
             </div>
-            <div className="panel-body">
-              {(analysis.suggestions || []).length === 0 ? (
-                <span style={{ fontSize: 12.5, color: "var(--green)" }}>✓ No critical improvements needed</span>
-              ) : (
-                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
-                  {analysis.suggestions.map((s, i) => {
-                    // s may be a string (legacy) or object { suggestion, priority, reason } (Groq)
-                    const isObj = typeof s === "object" && s !== null;
-                    const text = isObj ? s.suggestion : s;
-                    const priority = isObj ? s.priority : null;
-                    const reason = isObj ? s.reason : null;
-                    const dotColor = priority === "high" ? "var(--red)" : priority === "medium" ? "var(--yellow)" : "var(--accent)";
-                    return (
-                      <li key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                        <div style={{ width: 7, height: 7, borderRadius: "50%", background: dotColor, flexShrink: 0, marginTop: 5 }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>{text}</div>
-                          {reason && (
-                            <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 3, fontFamily: "'DM Mono', monospace" }}>
-                              {s.category?.toUpperCase()} · {reason}
-                            </div>
-                          )}
-                        </div>
-                        {priority && (
-                          <span className="pill" style={{
-                            flexShrink: 0,
-                            fontSize: 10, fontWeight: 700, letterSpacing: "0.5px",
-                            background: priority === "high" ? "rgba(200,75,49,0.1)" : priority === "medium" ? "rgba(224,155,61,0.1)" : "rgba(59,130,246,0.1)",
-                            color: priority === "high" ? "var(--red)" : priority === "medium" ? "var(--yellow)" : "var(--accent)",
-                            border: `1px solid ${priority === "high" ? "rgba(200,75,49,0.25)" : priority === "medium" ? "rgba(224,155,61,0.25)" : "rgba(59,130,246,0.25)"}`
-                          }}>{priority?.toUpperCase()}</span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
+            
+            {(analysis.suggestions || []).length === 0 ? (
+               <div className="ats-card">
+                 <span className="ats-body" style={{ color: "#22c55e" }}>No critical improvements needed</span>
+               </div>
+            ) : (
+              <div className="ats-suggestions-list">
+                {analysis.suggestions.map((s, i) => {
+                  const isObj = typeof s === "object" && s !== null;
+                  const text = isObj ? s.suggestion : s;
+                  const priority = isObj ? s.priority?.toLowerCase() || 'medium' : 'medium';
+                  const reason = isObj ? s.reason : null;
+                  
+                  return (
+                    <div key={i} className={`ats-suggestion-item ats-priority-${priority}`}>
+                      <div className="ats-suggestion-content">
+                        <span className="ats-suggestion-text">{text}</span>
+                        {reason && <span className="ats-suggestion-desc">{reason}</span>}
+                      </div>
+                      {isObj && s.priority && (
+                        <span className={`ats-priority-badge ats-priority-${priority}`}>
+                          {s.priority.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -5,7 +5,14 @@ import pdf from "pdf-parse-fork";
 
 dotenv.config();
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+let groq;
+try {
+  groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  console.log('Groq SDK initialized successfully');
+} catch (err) {
+  console.error('Failed to initialize Groq SDK:', err.message);
+  process.exit(1);
+}
 
 /* ------------------------------------------------------------------ */
 /*  LEGACY KEYWORD MATCHER  (Fallback — only used if Groq is down)     */

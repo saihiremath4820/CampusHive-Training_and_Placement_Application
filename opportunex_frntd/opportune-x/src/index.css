@@ -1903,6 +1903,188 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   ATS PAGE STYLES
+══════════════════════════════════════════════════════════════ */
+.ats-wrapper {
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: inherit;
+}
+.ats-wrapper * {
+  font-family: inherit;
+}
+
+.ats-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+.ats-section-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.ats-body { font-size: 14px; font-weight: 400; color: var(--text); }
+.ats-hint { font-size: 12px; font-weight: 400; color: var(--text-muted); margin-left: auto; }
+
+/* Upload section */
+.ats-upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ats-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ats-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ats-select {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+
+.ats-upload-zone {
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  position: relative;
+  background: rgba(59, 130, 246, 0.02);
+}
+.ats-upload-zone:hover { border-color: #3b82f6; }
+
+.ats-upload-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ats-resume-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.ats-resume-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
+.ats-resume-meta { font-size: 12px; color: var(--text-muted); flex: 1; }
+
+.ats-reupload-btn, .ats-browse-btn {
+  padding: 6px 12px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 2; 
+  position: relative;
+}
+
+.ats-upload-prompt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+/* Score Section */
+.ats-score-section { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+.ats-score-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.ats-score-source { 
+  font-size: 11px; font-weight: 700; color: #3b82f6; background: rgba(59,130,246,0.1); 
+  padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(59,130,246,0.2);
+}
+.ats-score-label { 
+  font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-left: auto;
+}
+.ats-score-label.strong { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+.ats-score-label.average { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+.ats-score-label.weak { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+
+.ats-score-body { display: flex; align-items: center; gap: 24px; }
+.ats-score-number { display: flex; align-items: baseline; }
+.ats-score-value { font-size: 56px; font-weight: 700; color: #3b82f6; line-height: 1; margin: 0; }
+.ats-score-unit { font-size: 24px; font-weight: 600; color: #3b82f6; margin-left: 2px;}
+
+.ats-score-right { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.ats-score-summary { font-size: 13px; color: var(--text-muted); line-height: 1.4; margin: 0; }
+.ats-score-bar { height: 6px; background: var(--border); border-radius: 99px; width: 100%; overflow: hidden; }
+.ats-score-fill { height: 100%; border-radius: 99px; background: #3b82f6; transition: width 0.8s ease; }
+.ats-score-role { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+
+/* Skills Section */
+.ats-skills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.ats-skills-card { padding: 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); }
+.ats-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.ats-card-title { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.ats-card-count { font-size: 11px; font-weight: 600; }
+.ats-skills-verified .ats-card-count { color: #22c55e; }
+.ats-skills-missing .ats-card-count { color: #ef4444; }
+
+.ats-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.ats-tag { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+.ats-tag-verified { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+.ats-tag-missing { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+
+/* Suggestions Section */
+.ats-section-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+.ats-suggestions-list { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.ats-suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+  background: var(--surface);
+}
+.ats-suggestion-item:last-child { border-bottom: none; }
+.ats-suggestion-content { display: flex; flex-direction: column; gap: 4px; }
+.ats-suggestion-text { font-size: 13px; font-weight: 600; color: var(--text); }
+.ats-suggestion-desc { font-size: 12px; color: var(--text-muted); }
+
+.ats-priority-high { border-left-color: #ef4444; }
+.ats-priority-medium { border-left-color: #f59e0b; }
+.ats-priority-low { border-left-color: #3b82f6; }
+
+.ats-priority-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+.ats-priority-badge.ats-priority-high { background: rgba(239,68,68,0.1); color: #ef4444; }
+.ats-priority-badge.ats-priority-medium { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.ats-priority-badge.ats-priority-low { background: rgba(59,130,246,0.1); color: #3b82f6; }
+
+/* ══════════════════════════════════════════════════════════════
    ENHANCED ROADMAP UI
 ══════════════════════════════════════════════════════════════ */
 /* Roadmap tab styling */
