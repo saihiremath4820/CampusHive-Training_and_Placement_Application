@@ -33,4 +33,7 @@ const StudentProfileSchema = new mongoose.Schema({
   profileCompletion: Number
 });
 
+StudentProfileSchema.index({ userId: 1 }, { unique: true });
+StudentProfileSchema.index({ collegeId: 1 });
+
 module.exports = mongoose.model("StudentProfile", StudentProfileSchema);

@@ -11,4 +11,6 @@ const settingSchema = new mongoose.Schema({
     showAnalytics: { type: Boolean, default: true },
 }, { timestamps: true });
 
+settingSchema.index({ collegeId: 1 });
+
 module.exports = mongoose.model("Setting", settingSchema);

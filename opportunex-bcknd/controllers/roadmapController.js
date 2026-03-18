@@ -108,12 +108,15 @@ Return ONLY valid JSON:
             { new: true, upsert: true }
         ).populate('opportunityId', 'title companyName');
 
-        if (global.io) {
-            global.io.to(req.user.id.toString()).emit('roadmap_ready', {
+        try {
+            const { getIO } = require('../config/socket');
+            getIO().to(req.user.id.toString()).emit('roadmap_ready', {
                 type: 'roadmap_ready',
                 message: 'Your skill roadmap has been generated',
                 timestamp: new Date()
             });
+        } catch(err) {
+            console.error("Socket error on roadmap ready:", err.message);
         }
 
         // 5. Return Response

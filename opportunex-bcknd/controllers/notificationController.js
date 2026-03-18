@@ -68,18 +68,25 @@ exports.createNotification = async ({ collegeId, recipient, role, title, message
             link
         });
 
-        if (global.io && eventName) {
-            const payload = {
-                ...notif.toObject(),
-                ...(socketData || {}),
-                timestamp: new Date()
-            };
+        try {
+            const { getIO } = require('../config/socket');
+            const io = getIO();
+            
+            if (eventName) {
+                const payload = {
+                    ...notif.toObject(),
+                    ...(socketData || {}),
+                    timestamp: new Date()
+                };
 
-            if (recipient) {
-                global.io.to(recipient.toString()).emit(eventName, payload);
-            } else if (role) {
-                global.io.to(role).emit(eventName, payload);
+                if (recipient) {
+                    io.to(recipient.toString()).emit(eventName, payload);
+                } else if (role) {
+                    io.to(role).emit(eventName, payload);
+                }
             }
+        } catch(err) {
+            console.error("Socket error mapping notification emission:", err.message);
         }
         return notif;
     } catch (err) {

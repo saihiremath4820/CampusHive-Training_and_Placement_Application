@@ -89,4 +89,6 @@ placementStatSchema.pre('save', function () {
   }
 });
 
+placementStatSchema.index({ collegeId: 1 });
+
 module.exports = mongoose.model("PlacementStat", placementStatSchema);

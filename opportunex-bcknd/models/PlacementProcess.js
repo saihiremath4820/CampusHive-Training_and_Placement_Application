@@ -38,4 +38,6 @@ const placementProcessSchema = new mongoose.Schema(
   }
 );
 
+placementProcessSchema.index({ collegeId: 1 });
+
 module.exports = mongoose.model("PlacementProcess", placementProcessSchema);

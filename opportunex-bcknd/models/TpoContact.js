@@ -44,4 +44,6 @@ const tpoContactSchema = new mongoose.Schema(
   }
 );
 
+tpoContactSchema.index({ collegeId: 1 });
+
 module.exports = mongoose.model("TpoContact", tpoContactSchema);

@@ -41,4 +41,10 @@ const notificationSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+notificationSchema.index({ recipient: 1 });
+notificationSchema.index({ collegeId: 1 });
+notificationSchema.index({ isBroadcast: 1 });
+notificationSchema.index({ recipient: 1, read: 1 });
+notificationSchema.index({ collegeId: 1, isBroadcast: 1 });
+
 module.exports = mongoose.model("Notification", notificationSchema);

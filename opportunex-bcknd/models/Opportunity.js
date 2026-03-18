@@ -111,4 +111,10 @@ const opportunitySchema = new mongoose.Schema(
   }
 );
 
+opportunitySchema.index({ collegeId: 1 });
+opportunitySchema.index({ approvalStatus: 1 });
+opportunitySchema.index({ collegeId: 1, approvalStatus: 1 });
+opportunitySchema.index({ isDeleted: 1 });
+opportunitySchema.index({ createdBy: 1 });
+
 module.exports = mongoose.model("Opportunity", opportunitySchema);

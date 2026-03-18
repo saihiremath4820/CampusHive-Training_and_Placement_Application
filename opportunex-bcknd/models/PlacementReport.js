@@ -32,4 +32,6 @@ const placementReportSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+placementReportSchema.index({ collegeId: 1 });
+
 module.exports = mongoose.model("PlacementReport", placementReportSchema);

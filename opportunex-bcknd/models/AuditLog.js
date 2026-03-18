@@ -55,4 +55,6 @@ const auditLogSchema = new mongoose.Schema(
   }
 );
 
+auditLogSchema.index({ collegeId: 1 });
+
 module.exports = mongoose.model("AuditLog", auditLogSchema);

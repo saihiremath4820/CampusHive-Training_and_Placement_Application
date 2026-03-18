@@ -58,4 +58,8 @@ const projectSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+projectSchema.index({ collegeId: 1 });
+projectSchema.index({ createdBy: 1 });
+projectSchema.index({ status: 1 });
+
 module.exports = mongoose.model("Project", projectSchema);

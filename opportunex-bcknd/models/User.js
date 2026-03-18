@@ -61,4 +61,9 @@ UserSchema.pre("save", function () {
   }
 });
 
+UserSchema.index({ collegeId: 1 });
+UserSchema.index({ role: 1 });
+UserSchema.index({ status: 1 });
+UserSchema.index({ collegeId: 1, role: 1 });
+
 module.exports = mongoose.model("User", UserSchema);

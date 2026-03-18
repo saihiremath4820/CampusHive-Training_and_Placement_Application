@@ -26,4 +26,6 @@ const placementObjectiveSchema = new mongoose.Schema(
   }
 );
 
+placementObjectiveSchema.index({ collegeId: 1 });
+
 module.exports = mongoose.model("PlacementObjective", placementObjectiveSchema);

@@ -39,6 +39,8 @@ const industryCollaborationSchema = new mongoose.Schema(
   }
 );
 
+industryCollaborationSchema.index({ collegeId: 1 });
+
 module.exports = mongoose.model(
   "IndustryCollaboration",
   industryCollaborationSchema

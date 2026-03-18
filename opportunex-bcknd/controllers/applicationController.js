@@ -109,10 +109,13 @@ exports.applyToOpportunity = async (req, res) => {
       }
     });
 
-    if (global.io) {
-      global.io.to('admin').emit('application_update', {
+    try {
+      const { getIO } = require('../config/socket');
+      getIO().to('admin').emit('application_update', {
         message: 'New application received'
       });
+    } catch(err) {
+      console.error("Socket error mapping application update to admin:", err.message);
     }
 
     res.status(201).json({

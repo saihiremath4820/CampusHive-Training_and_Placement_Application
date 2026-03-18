@@ -54,4 +54,6 @@ const recruiterSchema = new mongoose.Schema(
   }
 );
 
+recruiterSchema.index({ collegeId: 1 });
+
 module.exports = mongoose.model("Recruiter", recruiterSchema);

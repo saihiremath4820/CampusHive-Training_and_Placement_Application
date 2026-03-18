@@ -58,4 +58,6 @@ const trainingActivitySchema = new mongoose.Schema(
   }
 );
 
+trainingActivitySchema.index({ collegeId: 1 });
+
 module.exports = mongoose.model("TrainingActivity", trainingActivitySchema);

@@ -37,13 +37,16 @@ exports.createOrUpdateProfile = async (req, res) => {
       { new: true, upsert: true, runValidators: true }
     );
 
-    if (global.io) {
-      global.io.to('admin').emit('student_profile_updated', {
+    try {
+      const { getIO } = require('../config/socket');
+      getIO().to('admin').emit('student_profile_updated', {
         type: 'profile_update',
         message: `A student updated their profile`,
         studentId: req.user.id,
         timestamp: new Date()
       });
+    } catch(err) {
+      console.error("Socket error on profile update:", err.message);
     }
 
     if (process.env.NODE_ENV !== 'production') console.log("✅ Profile Saved Successfully");

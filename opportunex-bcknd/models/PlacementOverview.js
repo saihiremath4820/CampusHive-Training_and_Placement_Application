@@ -31,4 +31,6 @@ const placementOverviewSchema = new mongoose.Schema(
   }
 );
 
+placementOverviewSchema.index({ collegeId: 1 });
+
 module.exports = mongoose.model("PlacementOverview", placementOverviewSchema);

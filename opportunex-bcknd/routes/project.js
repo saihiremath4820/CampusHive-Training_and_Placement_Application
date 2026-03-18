@@ -12,7 +12,20 @@ const {
 
 const router = express.Router();
 
-router.post("/", verifyToken, authorize(["faculty"]), createProject);
+const Joi = require('joi');
+const validate = require('../middleware/validate');
+
+const createProjectSchema = Joi.object({
+  title: Joi.string().min(3).max(100).required(),
+  description: Joi.string().min(10).required(),
+  domain: Joi.string().required(),
+  duration: Joi.string().required(),
+  maxStudents: Joi.number().min(1).max(20).optional(),
+  skills: Joi.array().items(Joi.string()).optional(),
+  milestones: Joi.array().optional(),
+});
+
+router.post("/", verifyToken, authorize(["faculty"]), validate(createProjectSchema), createProject);
 router.get("/", verifyToken, getCollegeProjects);
 router.get("/my", verifyToken, authorize(["faculty"]), getMyProjects);
 router.delete("/:id", verifyToken, authorize(["faculty"]), deleteProject);

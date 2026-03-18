@@ -2,7 +2,6 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
-const { Server } = require("socket.io");
 require("dotenv").config();
 
 // 🔐 Startup Security Guards
@@ -23,17 +22,11 @@ const rateLimit = require("express-rate-limit");
 const app = express();
 const httpServer = http.createServer(app);
 
-const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    credentials: true,
-  }
-});
+const socketService = require('./config/socket');
+const io = socketService.init(httpServer);
 
 // Make io accessible in controllers
 app.set('io', io);
-global.io = io;
 
 // Socket connection handler
 io.on('connection', (socket) => {
@@ -60,17 +53,22 @@ io.on('connection', (socket) => {
 const sanitize = require('./middleware/sanitize');
 const hpp = require('hpp');
 
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+].filter(Boolean);
+
 // 🌐 CORS - MUST BE TOP LEVEL MIDDLEWARE
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+  origin: function(origin, callback) {
     if (!origin) return callback(null, true);
-    // Allow any origin
-    return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked: ${origin}`));
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // 🛡️ Security Headers
