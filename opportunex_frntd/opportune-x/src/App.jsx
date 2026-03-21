@@ -26,13 +26,13 @@ const App = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await api.get("/auth/me");
-        if (res.data?.user) {
-          setUser(res.data.user);
-        }
+        const res = await api.get('/auth/me');
+        setUser(res.data.user);
+        navigate(`/${res.data.user.role}`);
       } catch (err) {
-        console.warn("Session check failed or no session active.");
+        // Any auth failure — go to login:
         setUser(null);
+        navigate('/login');
       } finally {
         setIsLoading(false);
       }

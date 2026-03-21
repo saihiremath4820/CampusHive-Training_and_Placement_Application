@@ -10,18 +10,21 @@ api.interceptors.response.use(
   response => response,
   async error => {
     const originalRequest = error.config;
-    // If unauthorized and not already retrying
+
+    // If server restarted — go straight to login, no retry:
+    if (error.response?.data?.code === 'SERVER_RESTARTED') {
+      window.location.href = '/login';
+      return Promise.reject(error);
+    }
+
+    // Normal 401 — try refresh token:
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        // Try to refresh access token using the refresh token cookie
         await axios.post(`${api.defaults.baseURL}/auth/refresh-token`, {}, { withCredentials: true });
-        // Retry the original request (now with the new access token cookie)
         return api(originalRequest);
       } catch (refreshError) {
-        // If refresh fails, the session is truly dead
-        console.error("Session expired, please re-login.");
-        // We handle actual redirection in App.jsx or via logout
+        window.location.href = '/login';
         return Promise.reject(error);
       }
     }

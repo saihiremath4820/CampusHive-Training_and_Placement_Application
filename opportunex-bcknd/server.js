@@ -2,7 +2,15 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
+const crypto = require("crypto");
 require("dotenv").config();
+
+// Generate unique ID every time server starts:
+const SERVER_INSTANCE_ID = crypto.randomBytes(16).toString('hex');
+console.log(`🔑 Server Instance ID: ${SERVER_INSTANCE_ID}`);
+
+// Make it available globally:
+global.SERVER_INSTANCE_ID = SERVER_INSTANCE_ID;
 
 // 🔐 Startup Security Guards
 const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET'];

@@ -141,14 +141,14 @@ router.post("/register", async (req, res) => {
 
     // Generate short-lived access token:
     const accessToken = jwt.sign(
-      { id: user._id, role: user.role, collegeId: user.collegeId },
+      { id: user._id, role: user.role, collegeId: user.collegeId, instanceId: global.SERVER_INSTANCE_ID },
       process.env.JWT_SECRET,
       { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "2h" }
     );
 
     // Generate long-lived refresh token:
     const refreshToken = jwt.sign(
-      { id: user._id },
+      { id: user._id, instanceId: global.SERVER_INSTANCE_ID },
       process.env.REFRESH_TOKEN_SECRET || "fallback_refresh_secret",
       { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d" }
     );
@@ -226,13 +226,13 @@ router.post("/login", async (req, res) => {
     }
 
     const accessToken = jwt.sign(
-      { id: user._id, role: user.role, collegeId: user.collegeId },
+      { id: user._id, role: user.role, collegeId: user.collegeId, instanceId: global.SERVER_INSTANCE_ID },
       process.env.JWT_SECRET,
       { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "2h" }
     );
 
     const refreshToken = jwt.sign(
-      { id: user._id },
+      { id: user._id, instanceId: global.SERVER_INSTANCE_ID },
       process.env.REFRESH_TOKEN_SECRET || "fallback_refresh_secret",
       { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d" }
     );
@@ -366,7 +366,7 @@ router.post('/refresh-token', async (req, res) => {
       return res.status(401).json({ error: 'User not found or inactive' });
     }
     const newAccessToken = jwt.sign(
-      { id: user._id, role: user.role, collegeId: user.collegeId },
+      { id: user._id, role: user.role, collegeId: user.collegeId, instanceId: global.SERVER_INSTANCE_ID },
       process.env.JWT_SECRET,
       { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "2h" }
     );
