@@ -3,124 +3,151 @@ import { useStudent } from '../../context/StudentContext';
 import { 
   Briefcase, 
   FileText, 
-  CheckCircle2, 
+  CheckCircle, 
   Users, 
-  TrendingUp, 
-  ArrowRight,
-  UserCircle,
+  ChevronRight,
+  User,
   Map
 } from 'lucide-react';
 
 export default function StudentHome({ onNavigate }) {
-  const { profile, applications } = useStudent();
-  const firstName = profile?.fullName?.split(' ')[0] || 'Student';
+  const { profile, applications, opportunities } = useStudent();
+  const setActiveView = onNavigate;
 
   const stats = [
-    { label: 'Applications', value: applications?.length || 0, icon: FileText, color: '#6366f1' },
-    { label: 'Shortlisted', value: applications?.filter(a => a.status === 'Shortlisted').length || 0, icon: Users, color: '#f59e0b' },
-    { label: 'Selected', value: applications?.filter(a => a.status === 'Selected').length || 0, icon: CheckCircle2, color: '#22c55e' },
-    { label: 'Open Drives', value: '12', icon: Briefcase, color: '#0ea5e9' }, // Hardcoded for demo if not available
+    {
+      label: 'Applications',
+      value: applications?.length || 0,
+      icon: <FileText size={20} />,
+      color: '#3b82f6',
+      bg: 'rgba(59,130,246,0.08)'
+    },
+    {
+      label: 'Shortlisted',
+      value: applications?.filter(a => a.status === 'Shortlisted').length || 0,
+      icon: <Users size={20} />,
+      color: '#f59e0b',
+      bg: 'rgba(245,158,11,0.08)'
+    },
+    {
+      label: 'Selected',
+      value: applications?.filter(a => a.status === 'Selected').length || 0,
+      icon: <CheckCircle size={20} />,
+      color: '#22c55e',
+      bg: 'rgba(34,197,94,0.08)'
+    },
+    {
+      label: 'Open Drives',
+      value: opportunities?.length || 0,
+      icon: <Briefcase size={20} />,
+      color: '#8b5cf6',
+      bg: 'rgba(139,92,246,0.08)'
+    },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <header>
-        <h1 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text)', margin: '0 0 0.5rem' }}>
-          Welcome back, {firstName} <span style={{ opacity: 0.8 }}>👋</span>
-        </h1>
-        <p style={{ color: 'var(--text)', opacity: 0.5, fontWeight: 500, margin: 0 }}>
-          Here's what's happening with your placement preparations today.
-        </p>
-      </header>
+    <div className="student-home">
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Welcome Banner */}
+      <div className="home-welcome">
+        <div>
+          <h2 className="home-title">
+            Welcome back, {profile?.fullName?.split(' ')[0] || 'Student'} 👋
+          </h2>
+          <p className="home-subtitle">
+            Here is your placement journey at a glance
+          </p>
+        </div>
+        <div className="home-date">
+          {new Date().toLocaleDateString('en-IN', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          })}
+        </div>
+      </div>
+
+      {/* Stats Grid — 2x2 */}
+      <div className="home-stats-grid">
         {stats.map((stat, i) => (
-          <div key={i} className="panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ 
-              width: '3rem', height: '3rem', borderRadius: '0.75rem', 
-              background: `${stat.color}15`, color: stat.color,
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              <stat.icon size={20} />
+          <div key={i} className="home-stat-card">
+            <div className="home-stat-icon" style={{ background: stat.bg, color: stat.color }}>
+              {stat.icon}
             </div>
-            <div>
-              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', opacity: 0.5, margin: 0, textTransform: 'uppercase' }}>{stat.label}</p>
-              <p style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text)', margin: 0 }}>{stat.value}</p>
+            <div className="home-stat-info">
+              <span className="home-stat-value" style={{ color: stat.color }}>
+                {stat.value}
+              </span>
+              <span className="home-stat-label">{stat.label}</span>
             </div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+      {/* Bottom Row — Quick Actions + Pro Tip side by side */}
+      <div className="home-bottom-row">
+
         {/* Quick Actions */}
-        <div className="panel" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <TrendingUp size={18} style={{ color: 'var(--accent)' }} /> Quick Actions
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <ActionButton 
-              icon={Briefcase} 
-              label="Browse Jobs" 
-              desc="View 12 new matching opportunities"
-              onClick={() => onNavigate('opportunities')} 
-            />
-            <ActionButton 
-              icon={UserCircle} 
-              label="Update Profile" 
-              desc="Complete your profile to stand out"
-              onClick={() => onNavigate('profile')} 
-            />
-            <ActionButton 
-              icon={Map} 
-              label="View Roadmap" 
-              desc="Next step: Master System Design"
-              onClick={() => onNavigate('roadmap')} 
-            />
+        <div className="home-card home-actions">
+          <h3 className="home-card-title">Quick Actions</h3>
+          <div className="home-action-list">
+            <button className="home-action-item" onClick={() => setActiveView('opportunities')}>
+              <div className="home-action-icon">
+                <Briefcase size={18} />
+              </div>
+              <div className="home-action-text">
+                <span className="home-action-name">Browse Jobs</span>
+                <span className="home-action-desc">
+                  {opportunities?.length || 0} new matching opportunities
+                </span>
+              </div>
+              <ChevronRight size={16} className="home-action-arrow" />
+            </button>
+
+            <button className="home-action-item" onClick={() => setActiveView('profile')}>
+              <div className="home-action-icon">
+                <User size={18} />
+              </div>
+              <div className="home-action-text">
+                <span className="home-action-name">Update Profile</span>
+                <span className="home-action-desc">Complete your profile to stand out</span>
+              </div>
+              <ChevronRight size={16} className="home-action-arrow" />
+            </button>
+
+            <button className="home-action-item" onClick={() => setActiveView('roadmap')}>
+              <div className="home-action-icon">
+                <Map size={18} />
+              </div>
+              <div className="home-action-text">
+                <span className="home-action-name">View Roadmap</span>
+                <span className="home-action-desc">Track your learning journey</span>
+              </div>
+              <ChevronRight size={16} className="home-action-arrow" />
+            </button>
           </div>
         </div>
 
-        {/* Tips / Recent Activity Placeholder */}
-        <div className="panel" style={{ padding: '1.5rem', background: 'var(--accent)', color: '#fff' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 900, color: '#fff', marginBottom: '1rem' }}>Pro Tip 💡</h3>
-          <p style={{ fontSize: '0.9rem', lineHeight: 1.6, opacity: 0.9, marginBottom: '1.5rem' }}>
-            Students with 100% profile completeness are 3x more likely to be shortlisted by top companies. Make sure to upload your latest resume!
+        {/* Pro Tip */}
+        <div className="home-card home-protip">
+          <div className="home-protip-header">
+            <span className="home-protip-badge">Pro Tip</span>
+          </div>
+          <p className="home-protip-text">
+            Students with 100% profile completeness are 3x more likely
+            to be shortlisted by top companies. Make sure to upload
+            your latest resume!
           </p>
-          <button 
-            onClick={() => onNavigate('profile')}
-            style={{ 
-              padding: '0.75rem 1.25rem', borderRadius: '0.75rem', 
-              background: '#fff', color: 'var(--accent)', border: 'none',
-              fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '0.5rem'
-            }}
+          <button
+            className="home-protip-btn"
+            onClick={() => setActiveView('profile')}
           >
-            Finish Profile <ArrowRight size={14} />
+            Finish Profile →
           </button>
         </div>
+
       </div>
     </div>
-  );
-}
-
-function ActionButton({ icon: Icon, label, desc, onClick }) {
-  return (
-    <button 
-      onClick={onClick}
-      style={{ 
-        width: '100%', display: 'flex', alignItems: 'center', gap: '1rem',
-        padding: '1rem', background: 'var(--surface)', border: '1px solid var(--border)',
-        borderRadius: '0.75rem', cursor: 'pointer', textAlign: 'left',
-        transition: 'all 0.15s'
-      }}
-      className="action-btn"
-    >
-      <div style={{ color: 'var(--accent)' }}><Icon size={18} /></div>
-      <div style={{ flex: 1 }}>
-        <p style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text)', margin: 0 }}>{label}</p>
-        <p style={{ fontSize: '0.7rem', color: 'var(--text)', opacity: 0.5, margin: 0 }}>{desc}</p>
-      </div>
-      <ArrowRight size={14} style={{ opacity: 0.3 }} />
-    </button>
   );
 }
