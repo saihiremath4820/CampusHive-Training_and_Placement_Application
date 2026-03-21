@@ -50,6 +50,12 @@ export default function ApplicationsAdmin() {
         });
     }, [applications, searchTerm, statusFilter]);
 
+    // Summary counts
+    const counts = useMemo(() => ({
+        All: applications.length,
+        Applied: applications.filter(a => a.status === "Applied").length,
+        Shortlisted: applications.filter(a => a.status === "Shortlisted").length,
+        Selected: applications.filter(a => a.status === "Selected").length,
         Rejected: applications.filter(a => a.status === "Rejected").length,
     }), [applications]);
 
@@ -205,6 +211,15 @@ export default function ApplicationsAdmin() {
                                                     {app.createdAt ? new Date(app.createdAt).toLocaleDateString() : "—"}
                                                 </div>
                                             </td>
+                                            <td>
+                                                <span style={{
+                                                    padding: "4px 10px",
+                                                    borderRadius: 20,
+                                                    background: cfg.bg,
+                                                    color: cfg.color,
+                                                    fontSize: 11,
+                                                    fontWeight: 700,
+                                                }}>
                                                     {app.status}
                                                 </span>
                                             </td>
