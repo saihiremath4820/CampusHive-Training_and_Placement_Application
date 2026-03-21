@@ -44,6 +44,10 @@ exports.verifyToken = (req, res, next) => {
 /*  ROLE AUTHORIZATION  */
 exports.authorize = (roles) => (req, res, next) => {
   if (!req.user || !roles.some(role => role.toLowerCase() === req.user.role.toLowerCase())) {
+    console.error("🚫 [AUTH] 403 ACCESS DENIED.");
+    console.error("👉 Required roles:", roles);
+    console.error("👤 Current user:", req.user);
+    console.error("📍 Route:", req.originalUrl);
     return res.status(403).json({ message: "Access denied" });
   }
   next();

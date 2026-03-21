@@ -30,9 +30,10 @@ const App = () => {
         setUser(res.data.user);
         navigate(`/${res.data.user.role}`);
       } catch (err) {
-        // Any auth failure — go to login:
+        // Expected on server restart or expired session
+        // Silently redirect to login — no console error needed
         setUser(null);
-        navigate('/login');
+        // Navigation handled by interceptor
       } finally {
         setIsLoading(false);
       }

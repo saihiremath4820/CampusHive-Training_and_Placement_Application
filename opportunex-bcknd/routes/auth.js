@@ -361,6 +361,16 @@ router.post('/refresh-token', async (req, res) => {
   }
   try {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || "fallback_refresh_secret");
+    
+    if (decoded.instanceId && decoded.instanceId !== global.SERVER_INSTANCE_ID) {
+      res.clearCookie('token');
+      res.clearCookie('refreshToken');
+      return res.status(401).json({
+        error: 'Server was restarted. Please log in again.',
+        code: 'SERVER_RESTARTED'
+      });
+    }
+
     const user = await User.findById(decoded.id);
     if (!user || user.status === 'deactivated') {
       return res.status(401).json({ error: 'User not found or inactive' });

@@ -17,13 +17,14 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Normal 401 — try refresh token:
+    // Normal 401 — try refresh once:
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        await axios.post(`${api.defaults.baseURL}/auth/refresh-token`, {}, { withCredentials: true });
+        await api.post('/auth/refresh-token');
         return api(originalRequest);
-      } catch (refreshError) {
+      } catch {
+        // Refresh failed — go to login silently
         window.location.href = '/login';
         return Promise.reject(error);
       }

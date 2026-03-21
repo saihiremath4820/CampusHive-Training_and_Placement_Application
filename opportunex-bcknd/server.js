@@ -57,6 +57,12 @@ io.on('connection', (socket) => {
   });
 });
 
+// 🔍 Global Request Logger (to debug 403s)
+app.use((req, res, next) => {
+  console.log(`📡 [${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Custom sanitization middleware (Express 5 compatible)
 const sanitize = require('./middleware/sanitize');
 const hpp = require('hpp');
@@ -66,6 +72,8 @@ const allowedOrigins = [
   process.env.CLIENT_URL,
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
 ].filter(Boolean);
 
 // 🌐 CORS - MUST BE TOP LEVEL MIDDLEWARE
