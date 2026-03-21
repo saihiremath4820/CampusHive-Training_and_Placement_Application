@@ -246,6 +246,26 @@ export const StudentProvider = ({ children }) => {
     });
   };
 
+  const deleteRoadmap = async (id) => {
+    try {
+      const { default: api } = await import("../services/api");
+      await api.delete(`/roadmap/${id}`);
+      setRoadmaps(prev => {
+        const next = { ...prev };
+        // Roadmaps is an object keyed by opportunityId or 'general'
+        Object.keys(next).forEach(key => {
+          if (next[key]._id === id) delete next[key];
+        });
+        sessionStorage.setItem("roadmaps", JSON.stringify(next));
+        return next;
+      });
+      toast.success("Roadmap deleted successfully");
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to delete roadmap");
+      throw err;
+    }
+  };
+
   /* ---------- NOTIFICATIONS ---------- */
   const addNotification = (message) => {
     const notif = { id: Date.now(), message, time: new Date().toLocaleString() };
@@ -271,6 +291,7 @@ export const StudentProvider = ({ children }) => {
         addProject,
         generateRoadmap,
         updateRoadmapStatus,
+        deleteRoadmap,
         isProfileMandatoryComplete,
         isProfileCompleteForApply,
         refreshStudentData: fetchInitialData,

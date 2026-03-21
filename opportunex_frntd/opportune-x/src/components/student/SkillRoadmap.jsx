@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useStudent } from "../../context/StudentContext";
-import { CheckCircle2, BookOpen, Code2, TrendingUp, Zap, Clock, Star, Target } from "lucide-react";
+import { CheckCircle2, BookOpen, Code2, TrendingUp, Zap, Clock, Star, Target, Trash2 } from "lucide-react";
 
 /* 1. Priority Configuration */
 const priorityConfig = {
@@ -49,7 +49,7 @@ const BADGES = [
 ];
 
 export default function SkillRoadmap() {
-  const { roadmaps, updateRoadmapStatus } = useStudent();
+  const { roadmaps, updateRoadmapStatus, deleteRoadmap } = useStudent();
   const [selectedId, setSelectedId] = useState(null);
   
   const [stats, setStats] = useState({
@@ -139,6 +139,21 @@ export default function SkillRoadmap() {
     updateRoadmapStatus(skill, status, selectedId);
   };
 
+  const handleDeleteRoadmap = async (id) => {
+    const confirmed = window.confirm(
+      'Delete this completed roadmap? This cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteRoadmap(id);
+      // If deleted roadmap was selected — clear selection:
+      if (selectedId === id) setSelectedId(null);
+    } catch (err) {
+      // Error already toasted in context
+    }
+  };
+
   const currentDoc = roadmaps[selectedId] || { roadmap: [] };
   const items = currentDoc.roadmap || [];
 
@@ -193,8 +208,33 @@ export default function SkillRoadmap() {
                 title={`${roleName} @ ${compName}`}
               >
                 <span className="tab-company">{compName}</span>
-                <span className="tab-title">{roleName.substring(0, 22)}{roleName.length > 22 ? '...' : ''}</span>
-                <span className="tab-percent">{completionPercent}%</span>
+                <span className="tab-title">
+                  {roleName.substring(0, 22)}{roleName.length > 22 ? '...' : ''}
+                </span>
+                <span className="tab-percent">
+                  {completionPercent === 100 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // prevent tab switch
+                        handleDeleteRoadmap(r._id);
+                      }}
+                      className="roadmap-delete-btn"
+                      title="Delete completed roadmap"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        padding: '2px 4px',
+                        borderRadius: '4px',
+                        marginRight: '6px'
+                      }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                  {completionPercent}%
+                </span>
                 <div className="tab-progress-bar">
                   <div
                     className="tab-progress-fill"

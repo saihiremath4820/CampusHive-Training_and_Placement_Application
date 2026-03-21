@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Search, ClipboardList, Building2, User, Calendar, Filter } from "lucide-react";
+import { Search, ClipboardList, Building2, User, Calendar, Filter, Trash2 } from "lucide-react";
 import toast from '../common/toastManager';
 import { getAllApplications } from "../../services/adminService";
 import LoadingSpinner from "./shared/LoadingSpinner";
@@ -50,14 +50,26 @@ export default function ApplicationsAdmin() {
         });
     }, [applications, searchTerm, statusFilter]);
 
-    // Summary counts
-    const counts = useMemo(() => ({
-        All: applications.length,
-        Applied: applications.filter(a => a.status === "Applied").length,
-        Shortlisted: applications.filter(a => a.status === "Shortlisted").length,
-        Selected: applications.filter(a => a.status === "Selected").length,
         Rejected: applications.filter(a => a.status === "Rejected").length,
     }), [applications]);
+
+    const handleDeleteApplication = async (id) => {
+        const confirmed = window.confirm(
+            'Are you sure you want to delete this application? This action cannot be undone.'
+        );
+        if (!confirmed) return;
+
+        try {
+            const { default: api } = await import("../../services/api");
+            await api.delete(`/admin/applications/${id}`);
+            // Remove from local state immediately:
+            setApplications(prev => prev.filter(app => app._id !== id));
+            toast.success('Application deleted successfully');
+            window.dispatchEvent(new Event('refreshPendingCounts'));
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to delete application');
+        }
+    };
 
     if (loading) return (
         <div style={{ padding: "60px 0", display: "flex", justifyContent: "center" }}>
@@ -143,6 +155,7 @@ export default function ApplicationsAdmin() {
                                     <th>Company</th>
                                     <th>Applied On</th>
                                     <th>Status</th>
+                                    <th style={{ paddingRight: 20 }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -192,17 +205,31 @@ export default function ApplicationsAdmin() {
                                                     {app.createdAt ? new Date(app.createdAt).toLocaleDateString() : "—"}
                                                 </div>
                                             </td>
-                                            <td>
-                                                <span style={{
-                                                    padding: "4px 10px",
-                                                    borderRadius: 20,
-                                                    background: cfg.bg,
-                                                    color: cfg.color,
-                                                    fontSize: 11,
-                                                    fontWeight: 700,
-                                                }}>
                                                     {app.status}
                                                 </span>
+                                            </td>
+                                            <td style={{ paddingRight: 20 }}>
+                                                <button
+                                                    onClick={() => handleDeleteApplication(app._id)}
+                                                    className="delete-btn"
+                                                    title="Delete Application"
+                                                    style={{
+                                                        background: "transparent",
+                                                        border: "none",
+                                                        color: "#ef4444",
+                                                        cursor: "pointer",
+                                                        padding: "4px",
+                                                        borderRadius: "4px",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        transition: "background 0.2s"
+                                                    }}
+                                                    onMouseOver={(e) => e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)"}
+                                                    onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </td>
                                         </tr>
                                     );

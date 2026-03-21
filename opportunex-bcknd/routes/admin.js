@@ -31,6 +31,7 @@ router.get("/pending-counts", adminController.getPendingCounts);
 
 /* ================= APPLICATIONS ================= */
 router.get("/applications", adminController.getAllApplications);
+router.delete("/applications/:id", adminController.deleteApplication);
 
 /* ================= USERS ================= */
 router.post("/users", adminController.createUser);

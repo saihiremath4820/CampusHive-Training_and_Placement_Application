@@ -178,3 +178,44 @@ function generateFallback(missingSkills) {
         }))
     }
 }
+
+const calculateCompletion = (roadmap) => {
+    const total = roadmap.roadmap?.length || 0; // Use 'roadmap' as specified in model
+    if (total === 0) return 0;
+    const completed = roadmap.roadmap?.filter(s => s.status === 'Completed').length || 0;
+    return Math.round((completed / total) * 100);
+};
+
+exports.deleteRoadmap = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const studentId = req.user.id;
+
+    // Find roadmap and verify ownership:
+    const roadmap = await Roadmap.findById(id);
+
+    if (!roadmap) {
+      return res.status(404).json({ error: 'Roadmap not found' });
+    }
+
+    // Security check — only owner can delete:
+    if (roadmap.student?.toString() !== studentId) {
+      return res.status(403).json({ error: 'Not authorized to delete this roadmap' });
+    }
+
+    // Only allow deleting completed roadmaps:
+    const completionPercent = calculateCompletion(roadmap);
+    if (completionPercent < 100) {
+      return res.status(400).json({
+        error: 'Only completed roadmaps can be deleted.',
+        completionPercent
+      });
+    }
+
+    await Roadmap.findByIdAndDelete(id);
+
+    res.json({ success: true, message: 'Roadmap deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

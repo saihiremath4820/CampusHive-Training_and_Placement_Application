@@ -560,3 +560,34 @@ exports.updateSettings = async (req, res) => {
     res.status(500).json({ message: "Failed to update settings" });
   }
 };
+
+/* ================= APPLICATIONS (Delete) ================= */
+
+exports.deleteApplication = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { collegeId } = req.user;
+
+    // Find application first to verify it belongs to this college
+    const application = await Application.findById(id)
+      .populate({
+        path: 'opportunityId',
+        select: 'collegeId'
+      });
+
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    // Security check — only delete if belongs to admin's college
+    if (application.opportunityId?.collegeId?.toString() !== collegeId) {
+      return res.status(403).json({ error: 'Not authorized to delete this application' });
+    }
+
+    await Application.findByIdAndDelete(id);
+
+    res.json({ success: true, message: 'Application deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

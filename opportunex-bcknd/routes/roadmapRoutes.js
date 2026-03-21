@@ -5,5 +5,6 @@ const roadmapController = require('../controllers/roadmapController');
 
 router.get('/roadmap/all', verifyToken, authorize(['student']), roadmapController.getRoadmaps);
 router.post('/roadmap/generate', verifyToken, authorize(['student']), roadmapController.generateRoadmap);
+router.delete('/:id', verifyToken, authorize(['student']), roadmapController.deleteRoadmap);
 
 module.exports = router;
