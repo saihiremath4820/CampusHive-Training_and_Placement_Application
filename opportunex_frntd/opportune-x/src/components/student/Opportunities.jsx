@@ -68,7 +68,8 @@ export default function Opportunities({ onNavigateToProfile }) {
   }, [socket]);
 
   const handleApplyClick = async (op) => {
-    if (!isProfileMandatoryComplete() || !resume) {
+    const isMissingResume = !resume && !profile?.resumePath && !profile?.resume;
+    if (!isProfileMandatoryComplete() || isMissingResume) {
       setPendingOpportunity(op);
       setShowBlockModal(true);
     } else {
@@ -82,6 +83,16 @@ export default function Opportunities({ onNavigateToProfile }) {
         await executeApply(op, {});
       }
     }
+  };
+
+  const getMissingFields = () => {
+    const missing = [];
+    if (!profile?.resumePath && !resume) missing.push('Resume');
+    if (!profile?.cgpa) missing.push('CGPA');
+    if (!profile?.branch) missing.push('Branch');
+    if (!profile?.year) missing.push('Year of Study');
+    if (!profile?.phone && !profile?.mobile) missing.push('Phone Number');
+    return missing;
   };
 
   const executeApply = async (op, formData) => {
@@ -172,7 +183,8 @@ export default function Opportunities({ onNavigateToProfile }) {
       {/* ── OPPORTUNITIES GRID ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1rem", minWidth: 0 }}>
         {filtered.map((op, idx) => {
-          const alreadyApplied = (applications || []).some((a) => a.title === op.title);
+          const isArray = Array.isArray(applications);
+          const alreadyApplied = isArray ? applications.some((a) => a.title === op.title) : false;
           const jobSkills = op.requiredSkills || [];
           const backendMissingSkills = op.missingSkills || [];
 
@@ -331,9 +343,17 @@ export default function Opportunities({ onNavigateToProfile }) {
               <AlertCircle size={24} style={{ color: "var(--red)" }} />
             </div>
             <h3 style={{ fontSize: "1.35rem", fontWeight: 900, color: "var(--text)", marginBottom: "0.5rem" }}>Incomplete Profile</h3>
-            <p style={{ color: "var(--text)", opacity: 0.55, fontWeight: 500, marginBottom: "2rem", fontSize: "0.85rem", lineHeight: 1.6 }}>
+            <p style={{ color: "var(--text)", opacity: 0.55, fontWeight: 500, marginBottom: "1rem", fontSize: "0.85rem", lineHeight: 1.6 }}>
               Companies require a complete profile and uploaded resume before you can apply.
             </p>
+            <div style={{ textAlign: 'left', marginBottom: '2rem', padding: '1rem', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '0.75rem' }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--red)', marginBottom: '0.5rem' }}>Missing Requirements:</p>
+              <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                {getMissingFields().map(field => (
+                  <li key={field} style={{ color: 'var(--red)', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.2rem' }}>{field}</li>
+                ))}
+              </ul>
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
               <button onClick={() => { setShowBlockModal(false); onNavigateToProfile?.(); }} style={{ width: "100%", padding: "0.875rem", borderRadius: "0.75rem", background: "var(--accent)", color: "#fff", fontWeight: 900, fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.1em", border: "none", cursor: "pointer" }}>
                 Complete Profile Now

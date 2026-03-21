@@ -86,52 +86,75 @@ export default function PlacementView({ role = "student" }) {
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [settings, setSettings] = useState(null);
 
+    const extractArray = (input, key) => {
+        if (!input) return [];
+        if (Array.isArray(input)) return input;
+        if (key && input[key] && Array.isArray(input[key])) return input[key];
+        if (input.data && Array.isArray(input.data)) return input.data;
+        return [];
+    };
+
     const fetchAll = async () => {
         setLoading(true);
         try {
-            const [
-                statsRes,
-                objRes,
-                procRes,
-                trainRes,
-                recruiterRes,
-                contactRes,
-                collabRes,
-                overviewRes,
-                setRes,
-            ] = await Promise.allSettled([
-                getPlacementStats(),
-                getPlacementObjectives(),
-                getPlacementProcess(),
-                getTrainingActivities(),
-                getRecruiters(),
-                getTpoContacts(),
-                getIndustryCollaborations(),
-                getPlacementOverview(),
-                getPublicSettings()
+            const results = await Promise.allSettled([
+                getPlacementStats(),         // 0
+                getPlacementObjectives(),    // 1
+                getPlacementProcess(),       // 2
+                getTrainingActivities(),     // 3
+                getRecruiters(),             // 4
+                getTpoContacts(),            // 5
+                getIndustryCollaborations(), // 6
+                getPlacementOverview(),      // 7
+                getPublicSettings()          // 8
             ]);
 
-            // Sort stats by academic year ascending
-            const rawStats = statsRes.status === "fulfilled" ? (statsRes.value.data || []) : [];
-            const sortedStats = [...rawStats].sort((a, b) =>
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    console.warn(`fetchAll[${index}] failed:`, result.reason);
+                }
+            });
+
+            // 0: Stats
+            const rawStats = results[0].status === "fulfilled" ? results[0].value?.data : null;
+            const statsArray = extractArray(rawStats, 'data');
+            const sortedStats = [...statsArray].sort((a, b) =>
                 parseInt((a.academicYear || "0").split("-")[0]) -
                 parseInt((b.academicYear || "0").split("-")[0])
             );
             setStats(sortedStats);
             if (sortedStats.length > 0) setActiveYear(sortedStats.length - 1);
 
-            const rawObj = objRes.status === "fulfilled" ? (objRes.value.data || []) : [];
-            setObjectives(rawObj);
+            // 1: Objectives
+            const rawObj = results[1].status === "fulfilled" ? results[1].value?.data : null;
+            setObjectives(extractArray(rawObj, 'data'));
 
-            const rawProc = procRes.status === "fulfilled" ? (procRes.value.data || []) : [];
-            setProcessSteps([...rawProc].sort((a, b) => (a.stepNumber || 0) - (b.stepNumber || 0)));
+            // 2: Process
+            const rawProc = results[2].status === "fulfilled" ? results[2].value?.data : null;
+            const processArray = extractArray(rawProc, 'data');
+            setProcessSteps([...processArray].sort((a, b) => (a.stepNumber || 0) - (b.stepNumber || 0)));
 
-            setTrainings(trainRes.status === "fulfilled" ? (trainRes.value.data || []) : []);
-            setRecruiters(recruiterRes.status === "fulfilled" ? (recruiterRes.value.data || []) : []);
-            setContacts(contactRes.status === "fulfilled" ? (contactRes.value.data || []) : []);
-            setCollaborations(collabRes.status === "fulfilled" ? (collabRes.value.data || []) : []);
-            setOverview(overviewRes.status === "fulfilled" ? overviewRes.value.data : null);
-            setSettings(setRes.status === "fulfilled" ? setRes.value.data : null);
+            // 3: Trainings
+            const rawTrainings = results[3].status === "fulfilled" ? results[3].value?.data : null;
+            setTrainings(extractArray(rawTrainings, 'trainings'));
+
+            // 4: Recruiters
+            const rawRecruiters = results[4].status === "fulfilled" ? results[4].value?.data : null;
+            setRecruiters(extractArray(rawRecruiters, 'recruiters'));
+
+            // 5: Contacts
+            const rawContacts = results[5].status === "fulfilled" ? results[5].value?.data : null;
+            setContacts(extractArray(rawContacts, 'contacts'));
+
+            // 6: Collaborations
+            const rawCollabs = results[6].status === "fulfilled" ? results[6].value?.data : null;
+            setCollaborations(extractArray(rawCollabs, 'collaborations'));
+
+            // 7: Overview
+            setOverview(results[7].status === "fulfilled" ? results[7].value?.data : null);
+
+            // 8: Settings
+            setSettings(results[8].status === "fulfilled" ? results[8].value?.data : null);
 
         } catch (err) {
             console.error("PlacementView fetch error:", err);

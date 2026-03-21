@@ -76,13 +76,13 @@ export default function AdminDashboard({ onLogout, user }) {
       }).catch(console.error);
 
       getPlacementObjectives().then((res) => {
-        if (isMounted) setObjectives(res.data || []);
+        if (isMounted) setObjectives(res.data.data || []);
       }).catch(console.error);
 
       getPlacementProcess().then((res) => {
         if (isMounted) {
           setProcessSteps(
-            [...(res.data || [])].sort((a, b) => a.stepNumber - b.stepNumber)
+            [...(res.data.data || [])].sort((a, b) => a.stepNumber - b.stepNumber)
           );
         }
       }).catch(console.error);

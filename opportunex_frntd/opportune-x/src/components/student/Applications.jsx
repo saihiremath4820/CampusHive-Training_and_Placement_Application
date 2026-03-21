@@ -29,17 +29,16 @@ export default function Applications() {
     setShowCompanyModal(true);
   };
 
-  const activeApps = useMemo(() =>
-    (applications || []).filter(a => ACTIVE_STATUSES.includes(a.status || "Applied")),
-    [applications]
-  );
-
-  const pastApps = useMemo(() =>
-    (applications || [])
+  const activeApps = useMemo(() => {
+    if (!Array.isArray(applications)) return [];
+    return applications.filter(a => ACTIVE_STATUSES.includes(a.status || "Applied"));
+  }, [applications]);
+  const pastApps = useMemo(() => {
+    if (!Array.isArray(applications)) return [];
+    return applications
       .filter(a => PAST_STATUSES.includes(a.status))
-      .sort((x, y) => new Date(y.createdAt || y.appliedAt) - new Date(x.createdAt || x.appliedAt)),
-    [applications]
-  );
+      .sort((x, y) => new Date(y.createdAt || y.appliedAt) - new Date(x.createdAt || x.appliedAt));
+  }, [applications]);
 
   const displayList = activeTab === "active" ? activeApps : pastApps;
 

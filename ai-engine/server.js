@@ -29,6 +29,7 @@ app.use(cors({
     'http://localhost:5000',
     process.env.CLIENT_URL
   ].filter(Boolean),
+  credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));

@@ -40,7 +40,8 @@ export default function PlacementProcessAdmin() {
     try {
       setLoading(true);
       const res = await getPlacementProcess();
-      const sorted = (res.data || []).sort((a, b) => a.stepNumber - b.stepNumber);
+      const dataArr = res.data.data || (Array.isArray(res.data) ? res.data : []);
+      const sorted = [...dataArr].sort((a, b) => a.stepNumber - b.stepNumber);
       setSteps(sorted);
     } catch (err) {
       console.error("Failed to load process", err);

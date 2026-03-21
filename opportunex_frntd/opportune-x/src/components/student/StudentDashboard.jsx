@@ -3,6 +3,7 @@ import {
   GraduationCap,
   LogOut,
   UserCircle,
+  Users,
   Menu,
   Briefcase,
   FileText,
@@ -16,6 +17,7 @@ import {
   Map as MapIcon,
 } from "lucide-react";
 
+import axios from "axios";
 import api from "../../services/api";
 import toast from '../common/toastManager';
 import { useStudent } from "../../context/StudentContext";
@@ -28,9 +30,11 @@ import SkillRoadmap from "./SkillRoadmap";
 import PlacementView from "../shared/PlacementView";
 import NotificationIcon from "../shared/NotificationIcon";
 import StudentProjects from "./StudentProjects";
+import StudentHome from "./StudentHome";
 import { useSocket } from "../../context/SocketContext";
 
 const menuItems = [
+  { id: "home", label: "Dashboard Home", icon: Users },
   { id: "profile", label: "Professional Profile", icon: UserCircle },
   { id: "opportunities", label: "Jobs & Internships", icon: Briefcase },
   { id: "projects", label: "College Projects", icon: FilePlus },
@@ -41,7 +45,7 @@ const menuItems = [
 ];
 
 export default function StudentDashboard({ onLogout, user }) {
-  const [activeTab, setActiveTab] = useState("opportunities");
+  const [activeTab, setActiveTab] = useState("home");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -72,11 +76,10 @@ export default function StudentDashboard({ onLogout, user }) {
   useEffect(() => {
     if (activeTab !== "resume") return;
     const AI_URL = import.meta.env.VITE_AI_ENGINE_URL || "http://localhost:5001";
-    api.get(`${AI_URL}/health`, { timeout: 4000 })
+    axios.get(`${AI_URL}/health`, { timeout: 4000, withCredentials: false })
       .then(() => setAiEngineOnline(true))
       .catch(() => {
-        // Might be CORS on direct ping — fallback: assume online if backend is reachable
-        setAiEngineOnline(null); // unknown but don't block the user
+        setAiEngineOnline(false);
       });
   }, [activeTab]);
 
@@ -329,6 +332,7 @@ export default function StudentDashboard({ onLogout, user }) {
 
           {/* Tab content */}
           <div>
+            {activeTab === "home" && <StudentHome onNavigate={setActiveTab} />}
             {activeTab === "profile" && <Profile />}
             {activeTab === "opportunities" && <Opportunities onNavigateToProfile={() => setActiveTab("profile")} />}
             {activeTab === "applications" && <Applications />}
@@ -408,8 +412,9 @@ function ResumeAnalyzer({ analysis, loading, error, onUpload, resumePreview, tar
               </select>
               <span className="ats-hint">Changing will auto re-analyze</span>
             </div>
-            {aiEngineOnline === true && <span className="ats-hint" style={{color: '#22c55e'}}>AI Engine Online</span>}
-            {aiEngineOnline === false && <span className="ats-hint" style={{color: '#ef4444'}}>AI Engine Offline</span>}
+            {aiEngineOnline === true && <span className="ats-hint" style={{color: '#22c55e'}}>AI Online</span>}
+            {aiEngineOnline === false && <span className="ats-hint" style={{color: '#ef4444'}}>AI Offline</span>}
+            {aiEngineOnline === null && <span className="ats-hint" style={{color: '#f59e0b'}}>Checking AI...</span>}
           </div>
 
           {/* Upload Drop Zone */}

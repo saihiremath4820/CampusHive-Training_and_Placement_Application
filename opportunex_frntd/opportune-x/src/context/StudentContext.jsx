@@ -59,6 +59,7 @@ export const StudentProvider = ({ children }) => {
       if (profRes.data) {
         setProfile(profRes.data);
         sessionStorage.setItem("studentProfile", JSON.stringify(profRes.data));
+        setResume(profRes.data.resumePath || profRes.data.resume || null);
 
         // Populate resume if it exists in DB!
         if (profRes.data.resumePath) {
@@ -76,7 +77,10 @@ export const StudentProvider = ({ children }) => {
 
       // Fetch Applications
       const appRes = await getStudentApplications();
-      if (appRes.data) {
+      if (appRes.data && appRes.data.applications) {
+        setApplications(appRes.data.applications);
+        sessionStorage.setItem("applications", JSON.stringify(appRes.data.applications));
+      } else if (Array.isArray(appRes.data)) {
         setApplications(appRes.data);
         sessionStorage.setItem("applications", JSON.stringify(appRes.data));
       }
@@ -110,6 +114,7 @@ export const StudentProvider = ({ children }) => {
       const res = await saveStudentProfile(data);
       setProfile(res.data);
       sessionStorage.setItem("studentProfile", JSON.stringify(res.data));
+      setResume(res.data.resumePath || res.data.resume || null);
       if (isProfileMandatoryComplete(res.data)) {
         setIsFirstLogin(false);
         sessionStorage.setItem("isFirstLogin", "false");

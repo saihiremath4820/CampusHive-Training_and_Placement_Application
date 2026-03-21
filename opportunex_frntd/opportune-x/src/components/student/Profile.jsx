@@ -20,9 +20,21 @@ export default function Profile() {
 
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const [rawFormData, setRawFormData] = useState({
-    fullName: "", email: "", mobile: "", degree: "", branch: "",
-    year: "", cgpa: "", percentage: "", tenth: "", twelfth: "", skills: "", github: "",
-    linkedin: "", projects: "", interests: "",
+    fullName: profile?.fullName || "",
+    email: profile?.email || "",
+    mobile: profile?.mobile || "",
+    degree: profile?.degree || "",
+    branch: profile?.branch || "",
+    year: profile?.year || "",
+    cgpa: profile?.cgpa || "",
+    percentage: profile?.percentage || "",
+    tenth: profile?.tenth || "",
+    twelfth: profile?.twelfth || "",
+    skills: Array.isArray(profile?.skills) ? profile.skills.join(", ") : profile?.skills || "",
+    github: profile?.github || "",
+    linkedin: profile?.linkedin || "",
+    projects: profile?.projects || "",
+    interests: profile?.interests || "",
   });
 
   const formData = rawFormData;
@@ -46,34 +58,27 @@ export default function Profile() {
 
 
   useEffect(() => {
-    if (hasUserEdited) return;
-
-    const prefill = sessionStorage.getItem("prefillProfile");
-    const prefillData = prefill ? JSON.parse(prefill) : null;
     if (profile) {
-      setRawFormData({
-        fullName: profile.fullName || "",
-        email: profile.email || "",
-        mobile: profile.mobile || "",
-        degree: profile.degree || "",
-        branch: profile.branch || "",
-        year: profile.year || "",
-        cgpa: profile.cgpa || "",
-        percentage: profile.percentage || "",
-        tenth: profile.tenth || "",
-        twelfth: profile.twelfth || "",
-        skills: Array.isArray(profile.skills) ? profile.skills.join(", ") : profile.skills || "",
-        github: profile.github || "",
-        linkedin: profile.linkedin || "",
-        projects: profile.projects || "",
-        interests: profile.interests || "",
-      });
-      return;
+      setRawFormData(prev => ({
+        ...prev,
+        fullName: profile.fullName || prev.fullName,
+        email: profile.email || prev.email,
+        mobile: profile.mobile || prev.mobile,
+        degree: profile.degree || prev.degree,
+        branch: profile.branch || prev.branch,
+        year: profile.year || prev.year,
+        cgpa: profile.cgpa || prev.cgpa,
+        percentage: profile.percentage || prev.percentage,
+        tenth: profile.tenth || prev.tenth,
+        twelfth: profile.twelfth || prev.twelfth,
+        skills: Array.isArray(profile.skills) ? profile.skills.join(", ") : profile.skills || prev.skills,
+        github: profile.github || prev.github,
+        linkedin: profile.linkedin || prev.linkedin,
+        projects: profile.projects || prev.projects,
+        interests: profile.interests || prev.interests,
+      }));
     }
-    if (prefillData) {
-      setRawFormData(prev => ({ ...prev, fullName: prefillData.fullName || "", email: prefillData.email || "" }));
-    }
-  }, [profile, hasUserEdited]);
+  }, [profile]);
 
   const isEngineering = ["Diploma", "B.Tech", "M.Tech"].includes(formData.degree);
 

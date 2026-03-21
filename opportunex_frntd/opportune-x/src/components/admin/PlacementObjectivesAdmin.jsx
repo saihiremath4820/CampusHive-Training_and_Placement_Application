@@ -27,7 +27,8 @@ export default function PlacementObjectivesAdmin() {
     try {
       setLoading(true);
       const res = await getPlacementObjectives();
-      setObjectives(Array.isArray(res.data) ? res.data : []);
+      const dataArr = res.data.data || (Array.isArray(res.data) ? res.data : []);
+      setObjectives(dataArr);
     } catch (err) {
       console.error("Failed to load objectives", err);
       toast.error("Failed to load objectives");

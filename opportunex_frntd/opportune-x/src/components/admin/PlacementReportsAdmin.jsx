@@ -33,7 +33,8 @@ export default function PlacementReportsAdmin() {
     try {
       setLoading(true);
       const res = await getPlacementReports();
-      setReports(res.data || []);
+      const dataArr = res.data.data || (Array.isArray(res.data) ? res.data : []);
+      setReports(dataArr);
     } catch (err) {
       toast.error("Failed to load reports");
     } finally {
