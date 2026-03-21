@@ -122,6 +122,15 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// 🛡️ Strict Rate Limiting for Auth Actions (Prevents brute force)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20, // 20 requests per 15 mins for login/register/reset actions
+  message: "Too many login/register attempts. Please try again after 15 minutes.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Increased limit for resume/profile data
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
@@ -147,6 +156,13 @@ mongoose
     process.exit(1);
   });
 
+// Apply strict limiter only to sensitive auth endpoints
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/auth/reset-password', authLimiter);
+
+// Regular auth endpoints (/auth/me, /refresh-token) use the general limiter
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/student", require("./routes/student"));
 app.use("/api/student", require("./routes/roadmapRoutes"));
