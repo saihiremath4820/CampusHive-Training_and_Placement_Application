@@ -5,32 +5,50 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Track refresh attempts globally — prevents parallel/recursive refresh loops
+let isRefreshing = false;
+
 // Interceptor for auto token refresh
 api.interceptors.response.use(
   response => response,
   async error => {
     const originalRequest = error.config;
 
-    // If server restarted — go straight to login, no retry:
+    // If server restarted — go straight to login immediately:
     if (error.response?.data?.code === 'SERVER_RESTARTED') {
+      isRefreshing = false;
       window.location.href = '/login';
       return Promise.reject(error);
     }
 
-    // Normal 401 — try refresh once:
+    // Only retry on 401 AND only if not already retrying AND not a refresh request:
+    const isRefreshRequest = originalRequest.url?.includes('refresh-token')
+      || originalRequest._isRefreshRequest === true;
+
     if (error.response?.status === 401
       && !originalRequest._retry
-      && !originalRequest.url?.includes('/auth/refresh-token')) {
+      && !isRefreshRequest
+      && !isRefreshing) {
+
       originalRequest._retry = true;
+      isRefreshing = true;
+
       try {
-        await api.post('/auth/refresh-token');
+        // Mark the refresh request itself so it never re-enters this block:
+        await api.post('/auth/refresh-token', {}, {
+          _isRefreshRequest: true
+        });
+        isRefreshing = false;
         return api(originalRequest);
       } catch {
-        // Refresh failed — go to login silently
+        // Refresh failed — stop everything and go to login:
+        isRefreshing = false;
         window.location.href = '/login';
         return Promise.reject(error);
       }
     }
+
+    // For all other errors including failed refresh — just reject:
     return Promise.reject(error);
   }
 );
