@@ -88,7 +88,7 @@ export const StudentProvider = ({ children }) => {
       // Fetch Roadmaps
       try {
         const { default: api } = await import("../services/api");
-        const roadmapRes = await api.get("/student/roadmap/all");
+        const roadmapRes = await api.get("/roadmap/roadmap/all");
         if (roadmapRes.data && roadmapRes.data.roadmaps) {
           const rmap = {};
           roadmapRes.data.roadmaps.forEach(r => {
@@ -204,7 +204,7 @@ export const StudentProvider = ({ children }) => {
     const loadingToast = toast.loading("Generating your skill roadmap with AI\u2026");
     try {
       const { default: api } = await import("../services/api");
-      const res = await api.post("/student/roadmap/generate", {
+      const res = await api.post("/roadmap/roadmap/generate", {
         missingSkills,
         targetRole,
         opportunityId,
