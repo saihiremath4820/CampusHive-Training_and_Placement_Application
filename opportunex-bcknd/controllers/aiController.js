@@ -40,7 +40,7 @@ exports.getAtsScore = async (req, res) => {
 
     // ✅ 🛡️ 3. FILE EXISTENCE VERIFICATION
     if (!fs.existsSync(targetFile)) {
-      console.warn(`⚠️ File missing in system: ${relativePart}`);
+      console.warn(`⚠️ File missing in system: ${targetFile}`);
       return res.status(404).json({ message: "The uploaded resume file could not be found on the server." });
     }
 

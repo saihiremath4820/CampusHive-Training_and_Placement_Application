@@ -166,7 +166,6 @@ app.use('/api/auth/reset-password', authLimiter);
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/student", require("./routes/student"));
 app.use("/api/roadmap", require("./routes/roadmapRoutes"));
-app.use("/api/student", require("./routes/roadmapRoutes"));
 app.use("/api/opportunity", require("./routes/opportunity"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/notifications", require("./routes/notification"));
