@@ -119,13 +119,14 @@ const limiter = rateLimit({
   message: "Too many requests from this IP, please try again after 15 minutes",
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path.startsWith('/socket.io'),
 });
 app.use(limiter);
 
 // 🛡️ Strict Rate Limiting for Auth Actions (Prevents brute force)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20, // 20 requests per 15 mins for login/register/reset actions
+  max: 100, // 100 requests per 15 mins for login/register/reset actions
   message: "Too many login/register attempts. Please try again after 15 minutes.",
   standardHeaders: true,
   legacyHeaders: false,
