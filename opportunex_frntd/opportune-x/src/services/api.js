@@ -17,7 +17,10 @@ api.interceptors.response.use(
     // If server restarted — go straight to login immediately:
     if (error.response?.data?.code === 'SERVER_RESTARTED') {
       isRefreshing = false;
-      window.location.href = '/login';
+      // Only redirect if NOT already on login page:
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
       return Promise.reject(error);
     }
 
@@ -43,7 +46,10 @@ api.interceptors.response.use(
       } catch {
         // Refresh failed — stop everything and go to login:
         isRefreshing = false;
-        window.location.href = '/login';
+        // Only redirect if NOT already on login page:
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
         return Promise.reject(error);
       }
     }

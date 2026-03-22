@@ -24,6 +24,15 @@ const App = () => {
 
   /* ---------- SESSION PERSISTENCE ON REFRESH ---------- */
   useEffect(() => {
+    // Don't check auth on public pages — prevents infinite loop on /login
+    const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password'];
+    const isPublicPage = publicPaths.some(p => location.pathname.startsWith(p));
+
+    if (isPublicPage) {
+      setIsLoading(false);
+      return; // ← exit early, don't call /auth/me
+    }
+
     const checkAuth = async () => {
       try {
         const res = await api.get('/auth/me');
@@ -39,7 +48,7 @@ const App = () => {
       }
     };
     checkAuth();
-  }, []);
+  }, [location.pathname]);
 
   /* ---------- AUTH HANDLERS ---------- */
   const handleLoginSuccess = (userData) => {
