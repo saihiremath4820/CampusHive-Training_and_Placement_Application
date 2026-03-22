@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import './index.css';
@@ -25,11 +25,9 @@ window.onerror = function (msg, _url, lineNo, columnNo, _error) {
 const root = document.getElementById('root');
 if (root) {
     createRoot(root).render(
-        <StrictMode>
-            <BrowserRouter>
-                <ToastContainer />
-                <App />
-            </BrowserRouter>
-        </StrictMode>
+        <BrowserRouter>
+            <ToastContainer />
+            <App />
+        </BrowserRouter>
     );
 }
