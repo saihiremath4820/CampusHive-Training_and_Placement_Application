@@ -18,7 +18,9 @@ api.interceptors.response.use(
     }
 
     // Normal 401 — try refresh once:
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401
+      && !originalRequest._retry
+      && !originalRequest.url?.includes('/auth/refresh-token')) {
       originalRequest._retry = true;
       try {
         await api.post('/auth/refresh-token');
