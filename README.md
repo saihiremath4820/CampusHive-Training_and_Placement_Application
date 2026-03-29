@@ -2,14 +2,14 @@
 
 CampusHive is a comprehensive MERN stack application designed to streamline the placement process for educational institutions. It features an AI-driven resume analyzer and job matching system.
 
-## 🚀 Features
+ Features
 
 - **AI Resume Analyzer**: Powered by Groq AI for ATS scoring and optimization suggestions.
 - **Job Matching**: Intelligent matching of student profiles with available job opportunities.
 - **Project Portal**: Manage and view academic research and college projects.
 - **Admin Dashboard**: Full control over placement statistics, student profiles, and job postings.
 
-## 🔐 Environment Setup
+ Environment Setup
 
 This project requires API keys and environment variables that are **NOT** included in the repository for security reasons.
 
