@@ -58,6 +58,16 @@ const App = () => {
     navigate(from, { replace: true });
   };
 
+  const handleAuthSwitch = (view) => {
+    if (view === "register") {
+      navigate("/register");
+    } else if (view === "forgot") {
+      navigate("/forgot-password");
+    } else {
+      navigate("/login");
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await api.post("/auth/logout");
@@ -87,11 +97,11 @@ const App = () => {
         {/* Public Routes */}
         <Route 
           path="/login" 
-          element={!user ? <Login onLoginSuccess={handleLoginSuccess} /> : <Navigate to={`/${user.role}`} replace />} 
+          element={!user ? <Login onLoginSuccess={handleLoginSuccess} onSwitch={handleAuthSwitch} /> : <Navigate to={`/${user.role}`} replace />} 
         />
         <Route 
           path="/register" 
-          element={!user ? <Register onRegisterSuccess={handleLoginSuccess} /> : <Navigate to={`/${user.role}`} replace />} 
+          element={!user ? <Register onSwitch={(view) => view === "login" ? navigate("/login") : view === "forgot" ? navigate("/forgot-password") : null} onRegisterSuccess={handleLoginSuccess} /> : <Navigate to={`/${user.role}`} replace />} 
         />
         <Route path="/forgot-password" element={<ForgotPassword onSwitch={() => navigate("/login")} />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
