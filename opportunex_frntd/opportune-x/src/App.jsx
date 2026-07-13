@@ -36,8 +36,10 @@ const App = () => {
     const checkAuth = async () => {
       try {
         const res = await api.get('/auth/me');
-        setUser(res.data.user);
-        navigate(`/${res.data.user.role}`);
+        const normalizedRole = res.data.user?.role?.toLowerCase?.() || res.data.user.role;
+        const normalizedUser = { ...res.data.user, role: normalizedRole };
+        setUser(normalizedUser);
+        navigate(`/${normalizedRole}`);
       } catch (err) {
         // Expected on server restart or expired session
         // Silently redirect to login — no console error needed
@@ -52,10 +54,22 @@ const App = () => {
 
   /* ---------- AUTH HANDLERS ---------- */
   const handleLoginSuccess = (userData) => {
-    setUser(userData);
+    const normalizedRole = userData?.role?.toLowerCase?.() || userData.role;
+    const normalizedUser = { ...userData, role: normalizedRole };
+    setUser(normalizedUser);
     // Redirect to the intended page or their dashboard
-    const from = location.state?.from?.pathname || `/${userData.role}`;
+    const from = location.state?.from?.pathname || `/${normalizedRole}`;
     navigate(from, { replace: true });
+  };
+
+  const handleAuthSwitch = (view) => {
+    if (view === "register") {
+      navigate("/register");
+    } else if (view === "forgot") {
+      navigate("/forgot-password");
+    } else {
+      navigate("/login");
+    }
   };
 
   const handleLogout = async () => {
@@ -87,11 +101,11 @@ const App = () => {
         {/* Public Routes */}
         <Route 
           path="/login" 
-          element={!user ? <Login onLoginSuccess={handleLoginSuccess} /> : <Navigate to={`/${user.role}`} replace />} 
+          element={!user ? <Login onLoginSuccess={handleLoginSuccess} onSwitch={handleAuthSwitch} /> : <Navigate to={`/${user.role}`} replace />} 
         />
         <Route 
           path="/register" 
-          element={!user ? <Register onRegisterSuccess={handleLoginSuccess} /> : <Navigate to={`/${user.role}`} replace />} 
+          element={!user ? <Register onSwitch={(view) => view === "login" ? navigate("/login") : view === "forgot" ? navigate("/forgot-password") : null} onRegisterSuccess={handleLoginSuccess} /> : <Navigate to={`/${user.role}`} replace />} 
         />
         <Route path="/forgot-password" element={<ForgotPassword onSwitch={() => navigate("/login")} />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
@@ -117,6 +131,13 @@ const App = () => {
           </ProtectedRoute>
         } />
 
+        <Route path="/Admin" element={<Navigate to="/admin" replace />} />
+        <Route path="/Admin/*" element={<Navigate to="/admin" replace />} />
+        <Route path="/admin" element={
+          <ProtectedRoute allowedRole="admin" userRole={user?.role}>
+            <AdminDashboard user={user} onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
         <Route path="/admin/*" element={
           <ProtectedRoute allowedRole="admin" userRole={user?.role}>
             <AdminDashboard user={user} onLogout={handleLogout} />
@@ -124,8 +145,8 @@ const App = () => {
         } />
 
         {/* Catch-all Redirects */}
-        <Route path="/" element={<Navigate to={user ? `/${user.role}` : "/login"} replace />} />
-        <Route path="*" element={<Navigate to={user ? `/${user.role}` : "/login"} replace />} />
+        <Route path="/" element={<Navigate to={user ? `/${user.role?.toLowerCase()}` : "/login"} replace />} />
+        <Route path="*" element={<Navigate to={user ? `/${user.role?.toLowerCase()}` : "/login"} replace />} />
       </Routes>
     </SocketProvider>
   );

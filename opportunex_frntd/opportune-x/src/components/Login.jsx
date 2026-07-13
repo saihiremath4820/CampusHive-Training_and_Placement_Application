@@ -12,6 +12,12 @@ const Login = ({ onLoginSuccess, onSwitch }) => {
     const [loading, setLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
 
+    const safeSwitch = (view) => {
+        if (typeof onSwitch === "function") {
+            onSwitch(view);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!email || !password || !collegeId) {
@@ -95,7 +101,7 @@ const Login = ({ onLoginSuccess, onSwitch }) => {
                         <label style={{ marginBottom: 0 }}>Password</label>
                         <button
                             type="button"
-                            onClick={() => onSwitch("forgot")}
+                            onClick={() => safeSwitch("forgot")}
                             className="btn-text"
                             style={{ fontSize: 11.5, padding: "2px 0" }}
                         >
@@ -170,7 +176,7 @@ const Login = ({ onLoginSuccess, onSwitch }) => {
                 {/* Register link */}
                 <div className="login-register-row">
                     New to the ecosystem?{" "}
-                    <button type="button" onClick={() => onSwitch("register")}>
+                    <button type="button" onClick={() => safeSwitch("register")}>
                         Create an Account
                     </button>
                 </div>
