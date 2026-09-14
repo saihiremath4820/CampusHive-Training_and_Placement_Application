@@ -85,7 +85,7 @@ export const SocketProvider = ({ children, user }) => {
         setSocket(newSocket);
 
         return () => newSocket.disconnect();
-    }, []);
+    }, [user?.id]);
 
     const markAllRead = async () => {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));

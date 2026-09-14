@@ -131,13 +131,6 @@ const App = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/Admin" element={<Navigate to="/admin" replace />} />
-        <Route path="/Admin/*" element={<Navigate to="/admin" replace />} />
-        <Route path="/admin" element={
-          <ProtectedRoute allowedRole="admin" userRole={user?.role}>
-            <AdminDashboard user={user} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
         <Route path="/admin/*" element={
           <ProtectedRoute allowedRole="admin" userRole={user?.role}>
             <AdminDashboard user={user} onLogout={handleLogout} />
