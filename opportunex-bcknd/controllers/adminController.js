@@ -20,7 +20,16 @@ exports.getPendingCompanies = async (req, res) => {
 
 exports.approveCompany = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.params.id, { status: "approved" }, { new: true });
+    const user = await User.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        collegeId: req.user.collegeId,
+        role: "company",
+        status: "pending"
+      },
+      { status: "approved" },
+      { new: true }
+    );
     await createNotification({
       collegeId: user.collegeId,
       recipient: user._id,
@@ -38,7 +47,15 @@ exports.approveCompany = async (req, res) => {
 
 exports.rejectCompany = async (req, res) => {
   try {
-    await User.findByIdAndUpdate(req.params.id, { status: "rejected" });
+    await User.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        collegeId: req.user.collegeId,
+        role: "company",
+        status: "pending"
+      },
+      { status: "rejected" }
+    );
     res.json({ message: "Company rejected" });
   } catch (err) {
     res.status(500).json({ message: "Reject company failed" });
@@ -59,7 +76,16 @@ exports.getPendingFaculty = async (req, res) => {
 
 exports.approveFaculty = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.params.id, { status: "approved" }, { new: true });
+    const user = await User.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        collegeId: req.user.collegeId,
+        role: "faculty",
+        status: "pending"
+      },
+      { status: "approved" },
+      { new: true }
+    );
     await createNotification({
       collegeId: user.collegeId,
       recipient: user._id,
@@ -77,7 +103,15 @@ exports.approveFaculty = async (req, res) => {
 
 exports.rejectFaculty = async (req, res) => {
   try {
-    await User.findByIdAndUpdate(req.params.id, { status: "rejected" });
+    await User.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        collegeId: req.user.collegeId,
+        role: "faculty",
+        status: "pending"
+      },
+      { status: "rejected" }
+    );
     res.json({ message: "Faculty rejected" });
   } catch (err) {
     res.status(500).json({ message: "Reject faculty failed" });
