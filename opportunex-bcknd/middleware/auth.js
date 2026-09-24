@@ -12,7 +12,7 @@ exports.verifyToken = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Check if token was issued by THIS server instance:
-    if (decoded.instanceId && decoded.instanceId !== global.SERVER_INSTANCE_ID) {
+    if (!decoded.instanceId || decoded.instanceId !== global.SERVER_INSTANCE_ID) {
       // Token is from old server instance — clear cookies and force re-login
       res.clearCookie('token');
       res.clearCookie('refreshToken');

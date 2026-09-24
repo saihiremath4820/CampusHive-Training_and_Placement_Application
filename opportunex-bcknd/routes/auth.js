@@ -362,7 +362,7 @@ router.post('/refresh-token', async (req, res) => {
   try {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
     
-    if (decoded.instanceId && decoded.instanceId !== global.SERVER_INSTANCE_ID) {
+    if (!decoded.instanceId || decoded.instanceId !== global.SERVER_INSTANCE_ID) {
       res.clearCookie('token');
       res.clearCookie('refreshToken');
       return res.status(401).json({
