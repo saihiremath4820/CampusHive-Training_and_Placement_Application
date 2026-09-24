@@ -78,7 +78,10 @@ exports.applyToProject = async (req, res) => {
         const { projectId } = req.body;
         const studentId = req.user.id;
 
-        const project = await Project.findById(projectId);
+        const project = await Project.findOne({
+            _id: projectId,
+            collegeId: req.user.collegeId
+        });
         if (!project) return res.status(404).json({ message: "Project not found" });
 
         const alreadyApplied = project.applicants.some(a => a.student.toString() === studentId);
