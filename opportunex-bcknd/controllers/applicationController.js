@@ -11,7 +11,10 @@ exports.applyToOpportunity = async (req, res) => {
     const { opportunityId, githubUrl, linkedinUrl, hasBacklog, statementOfPurpose } = req.body;
     const studentId = req.user.id;
 
-    const opportunity = await Opportunity.findById(opportunityId);
+    const opportunity = await Opportunity.findOne({
+      _id: opportunityId,
+      collegeId: req.user.collegeId
+    });
 
     if (!opportunity) {
       return res.status(404).json({
