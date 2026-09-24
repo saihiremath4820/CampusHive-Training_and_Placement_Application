@@ -149,7 +149,7 @@ router.post("/register", async (req, res) => {
     // Generate long-lived refresh token:
     const refreshToken = jwt.sign(
       { id: user._id, instanceId: global.SERVER_INSTANCE_ID },
-      process.env.REFRESH_TOKEN_SECRET || "fallback_refresh_secret",
+      process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d" }
     );
 
@@ -233,7 +233,7 @@ router.post("/login", async (req, res) => {
 
     const refreshToken = jwt.sign(
       { id: user._id, instanceId: global.SERVER_INSTANCE_ID },
-      process.env.REFRESH_TOKEN_SECRET || "fallback_refresh_secret",
+      process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d" }
     );
 
@@ -360,7 +360,7 @@ router.post('/refresh-token', async (req, res) => {
     return res.status(401).json({ error: 'No refresh token' });
   }
   try {
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || "fallback_refresh_secret");
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
     
     if (decoded.instanceId && decoded.instanceId !== global.SERVER_INSTANCE_ID) {
       res.clearCookie('token');
