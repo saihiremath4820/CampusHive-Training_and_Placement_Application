@@ -134,8 +134,13 @@ exports.getPendingDrives = async (req, res) => {
 
 exports.approveDrive = async (req, res) => {
   try {
-    const drive = await Opportunity.findByIdAndUpdate(
-      req.params.id,
+    const drive = await Opportunity.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        collegeId: req.user.collegeId,
+        approvalStatus: "pending",
+        isDeleted: false
+      },
       { approvalStatus: "approved", rejectionReason: "" },
       { new: true }
     ).populate("createdBy", "name email");
@@ -198,8 +203,13 @@ exports.approveDrive = async (req, res) => {
 exports.rejectDrive = async (req, res) => {
   try {
     const { reason } = req.body;
-    const drive = await Opportunity.findByIdAndUpdate(
-      req.params.id,
+    const drive = await Opportunity.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        collegeId: req.user.collegeId,
+        approvalStatus: "pending",
+        isDeleted: false
+      },
       { approvalStatus: "rejected", rejectionReason: reason || "" },
       { new: true }
     ).populate("createdBy", "name email");
@@ -278,7 +288,11 @@ exports.getAllOpportunities = async (req, res) => {
 
 exports.disableOpportunity = async (req, res) => {
   try {
-    const op = await Opportunity.findById(req.params.id);
+    const op = await Opportunity.findOne({
+      _id: req.params.id,
+      collegeId: req.user.collegeId,
+      isDeleted: false
+    });
     if (!op) return res.status(404).json({ message: "Opportunity not found" });
     op.status = op.status === "Active" ? "Closed" : "Active";
     await op.save();
