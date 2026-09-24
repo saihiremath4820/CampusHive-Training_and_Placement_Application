@@ -495,8 +495,11 @@ exports.updateUser = async (req, res) => {
     if (name) userPayload.name = name;
     if (email) userPayload.email = email;
 
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
+    const user = await User.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        collegeId: req.user.collegeId
+      },
       userPayload,
       { new: true }
     );
@@ -535,7 +538,10 @@ exports.deleteUser = async (req, res) => {
     if (req.params.id === req.user.id) {
       return res.status(400).json({ message: "Cannot delete yourself" });
     }
-    await User.findByIdAndDelete(req.params.id);
+    await User.findOneAndDelete({
+      _id: req.params.id,
+      collegeId: req.user.collegeId
+    });
     res.json({ message: "User deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete user" });
@@ -547,7 +553,14 @@ exports.deactivateUser = async (req, res) => {
     if (req.params.id === req.user.id) {
       return res.status(400).json({ message: "Cannot deactivate yourself" });
     }
-    const user = await User.findByIdAndUpdate(req.params.id, { status: "deactivated" }, { new: true });
+    const user = await User.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        collegeId: req.user.collegeId
+      },
+      { status: "deactivated" },
+      { new: true }
+    );
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json({ message: "User deactivated", user });
   } catch (err) {
@@ -557,7 +570,14 @@ exports.deactivateUser = async (req, res) => {
 
 exports.reactivateUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.params.id, { status: "approved" }, { new: true });
+    const user = await User.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        collegeId: req.user.collegeId
+      },
+      { status: "approved" },
+      { new: true }
+    );
     if (!user) return res.status(404).json({ message: "User not found" });
 
     await createNotification({
