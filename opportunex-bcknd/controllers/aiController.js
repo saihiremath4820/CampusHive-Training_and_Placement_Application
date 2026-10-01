@@ -50,6 +50,8 @@ exports.getAtsScore = async (req, res) => {
       role: role || "ml",
       collegeId,
       userId
+    }, {
+      headers: { "X-AI-Engine-Secret": process.env.AI_ENGINE_SECRET }
     });
 
     res.json(response.data);
@@ -75,6 +77,8 @@ exports.getSkillMatch = async (req, res) => {
       student,
       project,
       collegeId
+    }, {
+      headers: { "X-AI-Engine-Secret": process.env.AI_ENGINE_SECRET }
     });
 
     res.json(response.data);
@@ -141,7 +145,10 @@ exports.companyATSScore = async (req, res) => {
           type: opportunity.type || ""
         }
       },
-      { timeout: 60000 }
+      {
+        timeout: 60000,
+        headers: { "X-AI-Engine-Secret": process.env.AI_ENGINE_SECRET }
+      }
     );
 
     res.json(aiResponse.data);
@@ -210,7 +217,10 @@ exports.facultyATSScore = async (req, res) => {
           domain: project.domain || ""
         }
       },
-      { timeout: 60000 }
+      {
+        timeout: 60000,
+        headers: { "X-AI-Engine-Secret": process.env.AI_ENGINE_SECRET }
+      }
     );
 
     res.json(aiResponse.data);

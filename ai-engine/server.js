@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { analyzeResume, analyzeResumeForJob, analyzeResumeForProject } from "./engine.js";
 import { runAIEngine } from "./engine.js";
 
@@ -11,7 +12,7 @@ dotenv.config();
 const app = express();
 
 // 🔐 Startup Security Guards
-const requiredEnvVars = ['GROQ_API_KEY'];
+const requiredEnvVars = ['GROQ_API_KEY', 'AI_ENGINE_SECRET'];
 requiredEnvVars.forEach(key => {
   if (!process.env[key]) {
     console.error(`❌ Missing required env var: ${key}`);
@@ -20,6 +21,30 @@ requiredEnvVars.forEach(key => {
   }
 });
 console.log('✅ All required env vars present');
+
+const aiEngineSecret = process.env.AI_ENGINE_SECRET;
+const authenticateBackend = (req, res, next) => {
+  const suppliedSecret = req.get('X-AI-Engine-Secret');
+
+  if (!suppliedSecret) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const expectedDigest = crypto
+    .createHash('sha256')
+    .update(aiEngineSecret, 'utf8')
+    .digest();
+  const suppliedDigest = crypto
+    .createHash('sha256')
+    .update(suppliedSecret, 'utf8')
+    .digest();
+
+  if (!crypto.timingSafeEqual(suppliedDigest, expectedDigest)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  next();
+};
 
 app.use(cors({
   origin: [
@@ -45,7 +70,7 @@ app.get("/health", (req, res) => {
 });
 
 /* ---------------- ANALYZE RESUME ---------------- */
-app.post("/analyze-resume", async (req, res) => {
+app.post("/analyze-resume", authenticateBackend, async (req, res) => {
   try {
     // ✅ Now accepts studentProfile and role from the backend controller
     const { filePath, role, studentProfile, studentSkills } = req.body;
@@ -124,7 +149,7 @@ app.post("/analyze-resume", async (req, res) => {
 });
 
 /* ---------------- MATCH SKILLS (Student vs Project) ---------------- */
-app.post("/match-skills", async (req, res) => {
+app.post("/match-skills", authenticateBackend, async (req, res) => {
   try {
     const { student, project } = req.body;
     const result = await runAIEngine(student, project);
@@ -136,7 +161,7 @@ app.post("/match-skills", async (req, res) => {
 });
 
 /* ---------------- COMPANY ATS SCORE (Resume vs Job) ---------------- */
-app.post("/company-ats-score", async (req, res) => {
+app.post("/company-ats-score", authenticateBackend, async (req, res) => {
   try {
     const { resumePath, studentProfile, opportunity } = req.body;
     if (!resumePath) return res.status(400).json({ error: "Missing resumePath" });
@@ -153,7 +178,7 @@ app.post("/company-ats-score", async (req, res) => {
 });
 
 /* ---------------- FACULTY ATS SCORE (Resume vs Project) ---------------- */
-app.post("/faculty-ats-score", async (req, res) => {
+app.post("/faculty-ats-score", authenticateBackend, async (req, res) => {
   try {
     const { resumePath, studentProfile, project } = req.body;
     if (!resumePath) return res.status(400).json({ error: "Missing resumePath" });
