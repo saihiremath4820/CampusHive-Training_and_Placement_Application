@@ -22,7 +22,7 @@ requiredEnvVars.forEach(key => {
 });
 console.log('✅ All required env vars present');
 
-const requiredSecretVars = ["JWT_SECRET", "REFRESH_TOKEN_SECRET"];
+const requiredSecretVars = ["JWT_SECRET", "REFRESH_TOKEN_SECRET", "AI_ENGINE_SECRET"];
 for (const key of requiredSecretVars) {
   if (!process.env[key]) {
     console.error(`Missing required secret env var: ${key}`);

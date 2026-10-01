@@ -179,7 +179,10 @@ exports.analyzeResume = async (req, res) => {
         studentProfile,
         studentSkills
       },
-      { timeout: 60000 }  // 60 second timeout for Groq AI
+      {
+        timeout: 60000,
+        headers: { "X-AI-Engine-Secret": process.env.AI_ENGINE_SECRET }
+      }  // 60 second timeout for Groq AI
     );
 
     if (process.env.NODE_ENV !== 'production') console.log("🤖 AI response received, mode:", aiResponse.data?.mode, "| Score:", aiResponse.data?.atsScore);
